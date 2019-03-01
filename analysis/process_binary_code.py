@@ -8,15 +8,6 @@ from binary_analysis_utils import node_from_cfg
 from binary_analysis_utils import ir_default_to_string, ir_generalized_to_string
 from read_from_file import main as read_and_process
 
-
-
-
-from create_bow_counters import count_words
-from create_ir_bow_counters import count_lines
-
-
-
-
 def remove_comments(line):
     if ';' in line:
         print "the line contains an assembly comment: ", line
@@ -56,16 +47,8 @@ def process_binary_for_bow(filename, extract_commands=extract_assembly_commands,
         lines.extend(extract_commands(node, proj=proj, to_string=to_string))        
 
     if lines:
-        counter = Counter(lines)
-    else:
-        counter = None
-
-    import angr
-    proj = angr.Project(filename, auto_load_libs=False)
-    old_counter = count_words(Counter(), proj)
-    assert old_counter == counter, 'File {} has different old and new counters'.format(filename)
-
-    return counter
+        return Counter(lines)
+    return None
 
 def parse_args_and_call_main():
     parser = argparse.ArgumentParser(description='Process binary file-')
