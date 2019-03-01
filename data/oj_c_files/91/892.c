@@ -1,0 +1,39 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+//******************************
+//*?????????
+//*????? 1200012858
+//*???2012-12-8
+//******************************
+int main ()
+{
+	char str[1000] = {0}, str1[1000];
+	char *s = str, *s1 = str1;   // *s???????????????????*s1??????????
+	cin.getline(str, 1000);
+	char b = str[0];             // ?????????
+	//for(; s < p; s++)
+	while (*(s + 1))             // ?????????
+	{
+	    *s1 = *s + *(s + 1);     // ?????*s1 = *s + *++s;????????????s??????
+		cout << *s1;
+		s++;
+		s1++;
+	}
+	*s1 = *s + b;
+	cout << *s1 << endl;
+	return 0;
+}

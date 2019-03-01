@@ -1,0 +1,35 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+int main()
+{
+int i,n,m,x,y,z;
+char a[500];
+gets(a);
+for(i=0;a[i]!='\0';i++);
+n=i;
+for(x=2;x<=n;x++)
+  for(i=0;i<n-x+1;i++)
+    {for(y=0,m=1;y<x;y++)
+        if(a[i+y]!=a[i+x-y-1])
+        {m=0;break;}
+     if(m==1)
+         {for(z=i;z<i+x;z++)
+            putchar(a[z]);
+          printf("\n");}
+     }
+return 0;
+}

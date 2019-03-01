@@ -1,0 +1,53 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+//???????
+
+
+
+int main()
+{
+	char input[101];									//?????????
+	char *p, *q;										//?????????
+	int end;											//?????
+
+	cin.getline(input, 102);
+
+	end = strlen(input);								//???
+	p = input;
+	q = input;
+
+	while(p < input + end)								//?????
+	{
+		while(*p != ' ' && *p != '\0')					//???????????????
+			*(q++) = *(p++);							//????????????
+
+		if(p == input + end)
+			break;										//???
+
+		//??????????
+		*(q++) = *(p++);
+
+		while(*p == ' ')
+			p++;										//???????
+	}
+
+	*q = '\0';											//?????
+
+	cout << input << endl;
+
+	return 0;
+}

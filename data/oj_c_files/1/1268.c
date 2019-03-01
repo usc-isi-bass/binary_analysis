@@ -1,0 +1,49 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+int cal(int,int);
+int main ()
+{
+    //???? 
+    int n=0;
+    cin>>n;
+    //?????? 
+    for (int i=0;i<n;i++)
+    {
+        int m=0;
+        cin>>m;
+        //?2?????????????? 
+        cout<<cal(m,2)<<endl;
+    }
+    
+    return 0;
+}
+//???????1??????????2????????? 
+int cal (int m,int i)
+{
+    int count=0;
+    if (m==1) return 1;//???1?????????1??? 
+    for (i;i<=m;i++)//??i????????????? 
+    {
+        
+        if (m%i==0)
+        {
+              count+=cal(m/i,i); 
+        }
+    }
+    //????? 
+    return count;
+}

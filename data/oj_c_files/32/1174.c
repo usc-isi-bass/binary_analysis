@@ -1,0 +1,55 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+int leap(int *p,int n)
+{                                                                               
+    if(n==0) return -1;                                                          
+    if((*p)!=0) return 0;
+    else return leap(p+1,n-1)+1;
+}
+int main()
+{
+    int n,i;
+    scanf("%d",&n);
+    for(i=0;i<n;i++)
+    {
+                    char a[100],b[100];
+                    int j,k=0,f=0,c[100]={0};
+                    scanf("%s %s",a,b);
+                    int len1=strlen(a),len2=strlen(b);                                          
+                    for(j=len2-1;j>=0;j--)
+                                          b[j+len1-len2]=b[j];
+                    for(j=len1-len2-1;j>=0;j--)
+                                               b[j]='0';
+                    for(j=len1-1;j>=0;j--)
+                    {
+                                          c[j]=a[j]-b[j]-k;
+                                          if(c[j]<0)
+                                          {
+                                                    c[j]+=10;
+                                                    k=1;
+                                          }
+                                          else k=0;
+                    }
+                    j=leap(c,len1);
+                    if(j==-1) printf("0");
+                    else
+                        for( ;j<len1;j++)
+                                         printf("%d",c[j]);
+                    printf("\n");
+    }
+    return 0; 
+}

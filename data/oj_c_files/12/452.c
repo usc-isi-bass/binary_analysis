@@ -1,0 +1,31 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+int main(){
+	int a[20],i,j,k,s;//a?????? i?????????????  s???????
+	for(s=0,cin>>a[1];a[1]!=-1;s=0,cin>>a[1]){//??????????
+		i=1;
+		while(a[i]!=0){
+			i++;
+			cin>>a[i];
+		}
+		for(j=1;j<i;j++)
+			for(k=1;k<i;k++)
+				if(a[j]==2*a[k])s++;
+		cout<<s<<endl;
+	}
+	return 0;
+}

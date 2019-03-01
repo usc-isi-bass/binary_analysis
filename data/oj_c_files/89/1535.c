@@ -1,0 +1,35 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+int main(){
+	int n,x,y,i;         //?????n?x?y????i?j???i??j???0?i,j<n?i?????
+	cin>>n;
+	int a[n];
+	for(i=0;i<n;i++)     //a[n]?????????????0
+		a[i]=0;
+	while(true){         //???
+		cin>>x>>y;
+		if(x==0&&y==0) break;     //?????0????
+		a[y]=a[y]+x;              //????????
+	}
+	for(i=0;i<n;i++)     //??a[n]
+		if(a[i]==n*(n-1)/2-i){    //??????????
+			cout<<i;
+			return 0;
+		}
+	cout<<"NOT FIUND";
+	return 0;
+}

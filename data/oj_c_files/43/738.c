@@ -1,0 +1,45 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+int ss(int x)
+{
+  double m;
+  int i,f=0;
+  m=sqrt(x);
+  if(x%2==0) return 0;
+  for(i=3;i<=m;i++)
+    {
+      if(x%i==0)               
+       {
+         f=1;
+         break;                        
+       }      
+    }
+  if(f==1) return 0;
+  else return 1;
+}
+int main()
+{
+  int n,l,f,m;
+  double k;
+  int i,j,p;
+  scanf("%d",&p);
+    l=p/2;
+    for(i=3;i<=l;i+=2)
+       if(ss(i)&&ss(p-i))
+       printf("%d %d\n",i,p-i);
+    return 0;
+}

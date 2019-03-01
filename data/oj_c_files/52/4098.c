@@ -1,0 +1,61 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+int main()
+{
+	int n,m,a[100],i,mid;
+	scanf("%d %d",&n,&m);
+	for(i=0;i<n;i++)
+	{
+		scanf("%d",&a[i]);
+	}
+	if(n==2*m)//???????????????????????
+	for(i=0;i<m;i++)
+	{
+		mid=a[n-m+i];//????m?????????????
+		a[n-m+i]=a[i];
+		a[i]=mid;
+	}
+	if(n>2*m)//??????m?????????????????????
+	{
+	for(i=0;i<m;i++)
+	{
+		mid=a[n-m+i];
+		a[n-m+i]=a[i];
+		a[i]=mid;
+	}
+	for(int j=m;j>0;j--)
+	{for(i=j;n-i>m+m-j;i++)
+	{
+		mid=a[n-i];
+		a[n-i]=a[n-i-1];
+		a[n-i-1]=mid;
+	}}
+	}
+	if(n<m+m)
+	{
+		for(int j=m;j>0;j--)//???m?????????????????????????????????
+		{
+		for(i=n-j;i>m-j;i--)
+		{mid=a[i];
+		a[i]=a[i-1];
+		a[i-1]=mid;}
+		}
+	}
+	for(i=0;i<n-1;i++)
+		printf("%d ",a[i]);
+	printf("%d",a[n-1]);
+}

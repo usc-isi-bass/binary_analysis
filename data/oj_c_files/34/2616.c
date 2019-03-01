@@ -1,0 +1,40 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+// ????.cpp : Defines the entry point for the console application.
+// ???????????????????1???????
+int cal(int n)                                         //?????cal?????????1???????
+{
+	if(n==1)                                           //?????1????“End”
+		cout<<"End"<<endl;
+	else if(n%2==0)                                    //???????????n/2=(n/2)?????
+	{
+		cout<<n<<"/2="<<(n/2)<<endl; 
+		return cal(n/2);
+	}
+	else                                               //???????????n*3+1=?3*n+1??????
+	{
+		cout<<n<<"*3+1="<<(3*n+1)<<endl;
+		return cal(3*n+1);
+	}
+}
+int main()                                             //?????
+{
+	int n,m;
+	cin>>n;
+	m=cal(n);                                          //????cal??
+	return 0;
+}

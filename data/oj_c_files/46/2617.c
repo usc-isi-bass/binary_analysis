@@ -1,0 +1,61 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+void main(){
+	int n[100][100],d[100][100], r,c,i,j,f,g;
+	scanf("%d %d\n",&r,&c);
+	
+	for(i=0;i<r;i++){
+		scanf("\n");
+		for(j=0;j<c;j++){
+			scanf("%d",&n[i][j]);
+	d[i][j]=1;
+	}
+	
+	}
+	i=0;
+	j=0;
+	g=0;
+	for(f=1;f<=r*c;f++){
+		printf("%d\n",n[i][j]);
+		d[i][j]=0;
+		if(g==0){
+		if(j<c-1&&d[i][j+1]){
+			j++;
+		g=0;}
+			else if(i<r-1&&d[i+1][j]){
+				i++;
+			g=0;}
+				else if(j>0&&d[i][j-1]){
+					j--;
+				g=0;}
+					else if(i>0&&d[i-1][j]){
+						i--;
+						g=1;}
+		}
+		else{
+			if(i>0&&d[i-1][j]){
+						i--;
+						g=1;}
+			else if(j<c-1&&d[i][j+1]){
+				j++;
+			g=0;}
+
+	}
+		
+}}
+
+

@@ -1,0 +1,36 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+/**
+ * @file    3.cpp
+ * @author  ???
+ * @date    2013-10-10
+ * @description
+ *          ????????? - ?7????????1045?
+ */
+int main()
+{
+	int n,Sum=0;
+	cin>>n;
+	for (int i=0;i!=n+1;i++)
+	{
+		int a=(i/10),b=i-10*a;//?a?b???i???????????? 
+		if( (i%7!=0) & (a!=7) & (b!=7)) 
+			Sum+=i*i;//??????1?n?7?????????????Sum? 
+	} 	
+	cout<<Sum<<endl;//??Sum???????? 
+	return 0;
+} 

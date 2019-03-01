@@ -1,0 +1,49 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+void main()
+{
+	int i,j,k,p,q,l,m,n;
+	char a[500];
+     gets(a);
+	l=strlen(a);
+	for(k=0;k<l-1;k++)
+	{
+		if(a[k]==a[k+1])
+			printf("%c%c\n",a[k],a[k+1]);
+	}
+	  for(i=2;i<l;i++)
+	  {
+		  for(k=0;k<l;k++)
+		  {
+	        	p=k;q=i+k;
+		    m=p;n=q;
+		    while(a[p]==a[q]&&p<=q)
+			{
+		    	p++;
+			   q--;
+			}
+		       if(q-p<1)
+			   {
+			       for(j=m;j<n;j++)
+			       printf("%c",a[j]);
+			       printf("%c\n",a[n]);
+			   }
+		  }
+	  }
+	
+}
+

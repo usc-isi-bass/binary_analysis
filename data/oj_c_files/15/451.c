@@ -1,0 +1,27 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+int main()
+{
+	int A[100][100];
+	int n,i,j,a,b,p,q,r;	
+	scanf("%d",&n);
+	for(i=0;i<n;i++)for(j=0;j<n;j++)scanf("%d",&A[i][j]);
+	for(i=0;i<n;i++){for(j=0;j<n;j++){if(A[i][j]==255&&A[i][j-1]==255&&A[i-1][j]==0){a=i;b=j;}}}
+	for(i=0;i<n;i++){for(j=0;j<n;j++){if(A[i][j]==0&&A[i][j-1]==255){p=i;q=j;i=n;j=n;}}}
+	r=(a-p-2)*(b-q-1);printf("%d\n",r);
+	return 0;
+}

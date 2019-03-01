@@ -1,0 +1,58 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+
+int count=0;
+
+int f(int m,int n)
+{
+	int a=0;
+	int b=0;
+	if(m<n)//????????????
+	{
+		n=m;//??n-m??????????
+	}
+	if(m>=n)//???????????
+	{
+		if(m>0)//???????0?
+			a=f(m-n,n);//???????
+		if(n>1)//????1?
+			b=f(m,n-1);//??????
+	}	
+	if(n==1)//??1??????
+	{
+		return 1;
+	}
+	if(m==0)//????????
+	{
+		return 1;
+	}
+	return (a+b);
+}
+
+
+int main()
+{
+	int t;
+	cin>>t;
+	while(t--)
+	{
+		int m,n;
+		cin>>m>>n;
+		cout<<f(m,n)<<endl;
+	}
+	return 0;
+}

@@ -1,0 +1,57 @@
+#include <ctype.h>
+#include <errno.h>
+#include <float.h>
+#include <iso646.h>
+#include <limits.h>
+#include <locale.h>
+#include <math.h>
+#include <setjmp.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
+int main()
+{
+struct student{
+int num;
+int yw;
+int sx;
+int all;
+}student[4]={0,0,0,0};
+struct student temp={0,0,0,0};
+int i, l,n;
+scanf("%d",&n);
+
+for(i=0;i<n;i++)
+{
+scanf("%d%d%d",&student[3].num,&student[3].yw,&student[3].sx);
+student[3].all=student[3].yw+student[3].sx;
+
+if(student[2].all<student[3].all)
+{
+temp=student[2];
+student[2]=student[3];
+student[3]=temp;
+}
+if(student[1].all<student[2].all)
+{
+temp=student[1];
+student[1]=student[2];
+student[2]=temp;
+}
+if(student[0].all<student[1].all)
+{
+temp=student[0];
+student[0]=student[1];
+student[1]=temp;
+}
+}
+for(l=0;l<3;l++)
+{
+printf("%d %d\n",student[l].num,student[l].all);
+}
+}
