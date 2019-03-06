@@ -3,7 +3,7 @@ from networkx.drawing.nx_agraph import write_dot
 import logging
 l=logging.getLogger("binai.ast")
 
-class AST(object):
+class ASTGraph(object):
     """
     Builds an Abstract Syntax Tree representing VEX operations.
     """

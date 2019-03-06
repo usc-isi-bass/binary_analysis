@@ -1,4 +1,4 @@
-from vex_ast import AST
+from ..analyses import ASTGraph
 import angr
 import logging
 
@@ -9,7 +9,7 @@ main_addr = p.loader.find_symbol("main").rebased_addr
 c = p.analyses.CFGEmulated(keep_state=True)
 node = c.get_any_node(main_addr)
 
-ast = AST(node.block, instructions=1)
+ast = ASTGraph(node.block, instructions=1)
 ast.to_dot("/tmp/ast.dot")
 
 
