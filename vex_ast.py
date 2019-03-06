@@ -47,6 +47,8 @@ class AST(object):
         :param e": a pyvex IR expression
         """
 
+        self._add_node(e)
+
         if hasattr(e, 'args'):
             deps = e.args
 
@@ -59,8 +61,8 @@ class AST(object):
         else:
             deps = []
 
+
         for dep in deps:
-            self._add_node(dep) # recursive
             self._add_directed_edge(e, dep, is_dep=True) # not useful
             self._handle_subexpr(dep)
 
