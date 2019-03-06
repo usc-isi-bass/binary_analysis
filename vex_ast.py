@@ -39,7 +39,7 @@ class AST(object):
             # And it has other expressions as arguments
             for arg in e.args:
                 self._expr_to_nodes(arg) # recursive
-                self.g.add_edge(e, arg)
+                #self.g.add_edge(e, arg) # not useful
         else:
             # For the rest of expressions, we use their 'tag' property
             self.g.add_node(e, label=e.tag)
