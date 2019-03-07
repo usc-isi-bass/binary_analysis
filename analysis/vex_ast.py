@@ -37,8 +37,18 @@ class ASTGraph(object):
                     break
                 continue
 
+            if s.tag == 'Ist_Exit':
+                self._handle_exit(s)
+                continue
+
             self._handle_statement(s)
 
+    def _handle_exit(self, s):
+        self._add_node(s)
+        self._to_nodes(s.guard)
+        self._to_nodes(s.dst)
+        self._add_directed_edge(s, s.guard)
+        self._add_directed_edge(s, s.dst)
 
     def _handle_statement(self, s):
         """
