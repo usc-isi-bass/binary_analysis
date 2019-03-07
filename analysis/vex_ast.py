@@ -3,6 +3,9 @@ from networkx.drawing.nx_agraph import write_dot
 import logging
 l=logging.getLogger("binai.ast")
 
+class ASTException(Exception):
+    pass
+
 class ASTGraph(object):
     """
     Builds an Abstract Syntax Tree representing VEX operations.
@@ -39,7 +42,7 @@ class ASTGraph(object):
 
     def _handle_statement(self, s):
         """
-        IR Statements produce side effects and depend on IR expressions.
+        IR Statements produce side effects. They depend on IR expressions.
         I.e., they correspond to the left hand side of IR instrucitons, e.g.:
             t0 = GET:I64(offset=56)
         Here, a write tmp instruction to t0 in this example, which depends on a
@@ -47,7 +50,6 @@ class ASTGraph(object):
         """
 
         # Left hand side
-        self._to_nodes(s)
         self._to_nodes(s)
         self._add_directed_edge(s, s.data, is_dep=True)
 
@@ -63,7 +65,8 @@ class ASTGraph(object):
         :param e": a pyvex IR expression
         """
 
-        self._add_node(e)
+        label = self._add_node(e)
+        self._link_reg_tmp_deps(e, label)
 
         if hasattr(e, 'args'):
             deps = e.args
@@ -86,24 +89,41 @@ class ASTGraph(object):
         """
         Create a node for statement or expression
         """
-        label = n.tag
         if hasattr(n, 'op'):
             label = n.op
+        elif hasattr(n, 'tag'):
+            label = n.tag
+        else:
+            label = n
+        l.debug("Adding node %s with label %s" % (n, label))
         self.g.add_node(n, label=label)
-        reg_write = 'Put' in label # If it is a reg write
-        self._link_reg_tmp_deps(n, reg_write)
+
+        return label
 
 
-    def _link_reg_tmp_deps(self, e, reg_write=False):
+    def _link_reg_tmp_deps(self, e, label):
         """
         Expose the link between a node and its register or temp dependencies
         """
+
+        reg_write = 'Put' in label # If it is a reg write
+        node = None
 
         # Handles temp names
         if hasattr(e, 'tmp') and e.tmp is not None:
             temp = "'t%s'" % e.tmp
             node = temp
+            is_dep=False
             # add a node representing that temp
+
+        # Special case (angr has a very annoying implementation of VEX
+        # instructions)
+        elif hasattr(e, 'addr') and e.addr is not None:
+            if e.addr.tmp is not None:
+                temp = "'t%s'" % e.addr.tmp
+                node = temp
+                is_dep=True
+                # add a node representing that temp
 
         # Handles reg names (SSA)
         elif hasattr(e, 'offset') and e.offset is not None:
@@ -115,16 +135,16 @@ class ASTGraph(object):
             reg = "'reg%s_%d'" % (e.offset, instance)
 
             node = reg
+            is_dep=False
 
         # Handles constants
         elif hasattr(e, 'con') and e.con is not None:
-            node = e.con.value
+            node = hex(e.con.value)
+            is_dep=True
 
-        else:
-            return
-
-        self.g.add_node(node)
-        self._add_directed_edge(e, node)
+        if node:
+            self._add_node(node)
+            self._add_directed_edge(e, node, is_dep=is_dep)
 
 
     def _add_directed_edge(self, n1, n2, is_dep=False):
@@ -135,15 +155,20 @@ class ASTGraph(object):
         :param dep: whether the relation is a dependency (statements and ops)
         This has the effect of inverting the direction of the edge.
         """
+        for n in [n1, n2]:
+            if not n in self.g.node:
+                raise ASTException("Node %s not in graph" % n)
 
         if is_dep is True or n1.tag in self.read_ops:
             self.g.add_edge(n2, n1)
             l.debug("Edge: %s->%s" % (n2, n1.tag))
-        elif n1.tag in self.write_ops:
+        #elif n1.tag in self.write_ops:
+        else:
             self.g.add_edge(n1, n2)
             l.debug("Edge: %s->%s" % (n1.tag, n2))
-        else:
-            l.warning("Unhandled operation %s" % n1.tag)
+
+        #else:
+            #l.warning("Unhandled operation %s" % n1.tag)
 
 
         #if is_dep is True:

@@ -17,6 +17,7 @@ main_addr = p.loader.find_symbol("main").rebased_addr
 c = p.analyses.CFGEmulated(keep_state=True)
 node = c.get_any_node(main_addr)
 
+# Create an ASTGraph of the first instruction only
 ast = ASTGraph(node.block, instructions=1)
 ast.to_dot("/tmp/ast.dot")
 
