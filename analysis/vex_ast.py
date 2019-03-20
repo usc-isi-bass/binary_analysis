@@ -36,6 +36,10 @@ class ASTGraph(object):
                     l.debug("Stopping here")
                     break
                 continue
+            
+            if s.tag == 'Ist_AbiHint':
+                # TODO: do what?
+                continue
 
             if s.tag == 'Ist_Exit':
                 self._handle_exit(s)
