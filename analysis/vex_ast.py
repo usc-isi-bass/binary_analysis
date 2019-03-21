@@ -36,7 +36,7 @@ class ASTGraph(object):
                     l.debug("Stopping here")
                     break
                 continue
-            
+
             if s.tag == 'Ist_AbiHint':
                 # TODO: do what?
                 continue
@@ -130,14 +130,16 @@ class ASTGraph(object):
             is_dep=False
             # add a node representing that temp
 
-        # Special case (angr has a very annoying implementation of VEX
-        # instructions)
+        # Special case
         elif hasattr(e, 'addr') and e.addr is not None:
-            if e.addr.tmp is not None:
+            # Here, the addr can be a tmp or a pyvex const
+            if e.addr.tag == 'Iex_RdTmp':
                 temp = "'t%s'" % e.addr.tmp
                 node = temp
                 is_dep=True
-                # add a node representing that temp
+            elif e.addr.tag == 'Iex_Const':
+                node = hex(e.addr.con.value)
+                is_dep=True
 
         # Handles reg names (SSA)
         elif hasattr(e, 'offset') and e.offset is not None:
