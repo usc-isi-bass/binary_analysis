@@ -15,6 +15,7 @@ if __name__ == '__main__':
     parser.add_argument('--params_file', type=str, help='file containing parameters to grid search over', default=None)
     parser.add_argument('--out_file', type=str, default=None)
     parser.add_argument('--in_file', type=str)
+    parser.add_argument('--model', type=str)
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--l2', type=float, default=0)
     parser.add_argument('--amsgrad', type=bool, default=False)
@@ -52,4 +53,4 @@ if __name__ == '__main__':
     sys.stdout.flush()
 
     # Do grid search
-    grid_search_models(params, trees, args.prefix)
+    grid_search_models(params, trees, args.prefix, args.model)

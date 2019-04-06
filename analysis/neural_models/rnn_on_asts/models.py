@@ -16,7 +16,7 @@ class Config(object):
     """
     embed_size = 35
     label_size = 104
-    max_epochs = 10
+    max_epochs = 20
     amsgrad = False
     lr = 0.001
     l2 = 0.02

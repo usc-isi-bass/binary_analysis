@@ -43,7 +43,7 @@ def model_evaluate(model, trees):
     return correct.data.item() / n
 
 
-def run_epoch(model, optimizer, train_data, print_every=10000, print_acc=False):
+def run_epoch(model, optimizer, train_data, print_every=1000, print_acc=True):
     loss_history = []
     train_acc_history = []
     
@@ -123,7 +123,7 @@ def train(model, model_prefix, train_data, val_data, print_every=5000):
     plt.ylabel('Loss')
     plt.savefig('{}.loss_history.png'.format(model_name))
     
-def grid_search_models(params, trees, model_prefix):
+def grid_search_models(params, trees, model_prefix, model_weights=None):
     embed_sizes = params['embed_sizes']
     l2 = params['l2']
     lr = params['lr']
@@ -149,6 +149,9 @@ def grid_search_models(params, trees, model_prefix):
                     print ('lr = {}, l2 = {}, amsgrad = {}, embed_size = {}'.format(
                     lr_i, l2_i, a_i, e_i))
                     print ('~~~~~~~~~~~~~~~~~~~~~~')
-                    
+            
                     model = RecursiveNN(vocab, config).cuda()
+                    if model_weights is not None: 
+                        print ('Loading pre-trained parameters from {}'.format(model_weights))
+                        model.load_state_dict(torch.load(model_weights))
                     train(model, model_prefix, train_data, val_data)
