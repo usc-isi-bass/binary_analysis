@@ -21,6 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('--amsgrad', type=bool, default=False)
     parser.add_argument('--emb_size', type=int, default=100)
     parser.add_argument('--prefix', type=str, default='')
+    parser.add_argument('--sc', type=bool, default=False)
     
     args = parser.parse_args()
     
@@ -53,4 +54,8 @@ if __name__ == '__main__':
     sys.stdout.flush()
 
     # Do grid search
-    grid_search_models(params, trees, args.prefix, args.model)
+    grid_search_models(params=params, 
+                       trees=trees, 
+                       model_prefix=args.prefix, 
+                       model_weights=args.model, 
+                       sc=args.sc)

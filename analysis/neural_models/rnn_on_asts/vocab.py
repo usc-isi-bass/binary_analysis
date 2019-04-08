@@ -17,6 +17,22 @@ class Vocab():
             self.index_to_word[index] = word
         self.word_freq[word] += count
     
+    def add_all_children_words(self, node):
+        if node is None:
+            return
+        self.add_word(node.word)
+        if not node.isLeaf:
+            self.add_all_children_words(node.left)
+            self.add_all_children_words(node.right)
+    
+    def construct_from_trees(self, trees):
+        for t in trees:
+            self.add_all_children_words(t.root)
+        self.total_words = float(sum(self.word_freq.values()))
+        self.vocab_size = len(self.word_freq)
+        print ('{} total words with {} uniques'.format(
+            self.total_words, self.vocab_size))
+    
     def construct(self, words):
         for word in words:
             self.add_word(word)

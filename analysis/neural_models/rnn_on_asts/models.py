@@ -48,6 +48,69 @@ class RecursiveNN(torch.nn.Module):
         prediction = logits.max(dim=1)[1]
         loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label-1])))
         return prediction, loss
+    
+class MRecursiveNN(torch.nn.Module):
+    def __init__(self, vocab, config):
+        super(MRecursiveNN, self).__init__()
+        self.config = config
+        self.vocab = vocab
+        self.embedding = torch.nn.Embedding(int(self.vocab.vocab_size), self.config.embed_size**2)
+        self.W = torch.nn.Linear(2*self.config.embed_size, self.config.embed_size, bias=True)
+        self.projection = torch.nn.Linear(self.config.embed_size**2, self.config.label_size, bias=True)
+        self.activation = F.relu
+
+    def _traverse(self, node):
+        if node.isLeaf: 
+            currentNode = self.activation(self.embedding(
+                Var(torch.tensor([self.vocab.encode(node.word)]))))
+            currentNode = currentNode.view(self.config.embed_size, self.config.embed_size)
+        else: 
+            l = self._traverse(node.left).view(self.config.embed_size, self.config.embed_size)
+            r = self._traverse(node.right).view(self.config.embed_size, self.config.embed_size)
+            currentNode = self.activation(
+                self.W(torch.cat((l, r),1)))
+        return currentNode
+
+    def forward(self, x):
+        emb = self._traverse(x.root)
+        logits = self.projection(emb.view(1, -1))
+        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label - 1])))
+
+        prediction = logits.max(dim=1)[1]
+        return prediction, loss
+    
+class AdditiveRecursiveNN(torch.nn.Module):
+    def __init__(self, vocab, config):
+        super(AdditiveRecursiveNN, self).__init__()
+        self.config = config
+        self.vocab = vocab
+        self.embedding = torch.nn.Embedding(int(self.vocab.vocab_size), self.config.embed_size**2)
+        self.biases = torch.nn.Embedding(int(self.vocab.vocab_size), self.config.embed_size)
+        self.projection = torch.nn.Linear(self.config.embed_size**2, self.config.label_size, bias=True)
+        self.activation = F.relu
+
+    def _traverse(self, node):
+        vocab_idx = Var(torch.tensor([self.vocab.encode(node.word)]))
+        currentNode = self.embedding(vocab_idx)
+        currentNode = currentNode.view(self.config.embed_size, self.config.embed_size)
+        
+        if not node.isLeaf: 
+            currentBias = self.biases(vocab_idx)
+            
+            l = self._traverse(node.left).view(self.config.embed_size, self.config.embed_size)
+            r = self._traverse(node.right).view(self.config.embed_size, self.config.embed_size)
+            input = l + r
+            
+            currentNode = F.linear(input, current_node, current_bias)
+        return self.activation(currentNode)
+
+    def forward(self, x):
+        emb = self._traverse(x.root)
+        logits = self.projection(emb.view(1, -1))
+        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label - 1])))
+
+        prediction = logits.max(dim=1)[1]
+        return prediction, loss
 
 class SWRecursiveNN(torch.nn.Module):
     def __init__(self, vocab, config):
