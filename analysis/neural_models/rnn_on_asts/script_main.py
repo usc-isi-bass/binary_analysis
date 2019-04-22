@@ -22,6 +22,8 @@ if __name__ == '__main__':
     parser.add_argument('--emb_size', type=int, default=100)
     parser.add_argument('--prefix', type=str, default='')
     parser.add_argument('--sc', type=bool, default=False)
+    parser.add_argument('--trimmed', type=bool, default=False)
+    parser.add_argument('--model_name', type=str, default='')
     
     args = parser.parse_args()
     
@@ -53,9 +55,12 @@ if __name__ == '__main__':
     print('Using gpu #{}'.format(torch.cuda.current_device()))
     sys.stdout.flush()
 
+    print ('Trimmed?', args.trimmed)
     # Do grid search
     grid_search_models(params=params, 
                        trees=trees, 
                        model_prefix=args.prefix, 
                        model_weights=args.model, 
-                       sc=args.sc)
+                       sc=args.sc, 
+                       trimmed=args.trimmed,
+                       model_name=args.model_name)
