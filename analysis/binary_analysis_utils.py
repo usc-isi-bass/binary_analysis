@@ -32,7 +32,37 @@ def node_from_cfg(filename):
             if (s.addr not in processed_nodes) and (s.addr not in nodes_to_process_addr):
                 nodes_to_process.append(s)
                 nodes_to_process_addr.add(s.addr)
-
+                
+def loadBinASTData(train_r=8, val_r=1, test_r=1):
+    directories = os.walk('../bin/')
+    next(directories)
+    trees = []
+    i = 0
+    for directory in directories:
+        print ('Processing dir: ', directory[0])
+        i += 1
+        if i == 5:
+            break
+        for file in directory[2]:
+            filename = directory[0] + '/' + file
+            all_trees = []
+            for node, _ in node_from_cfg(filename):
+                try:
+                    graph = ASTGraph(node.block)
+                except Exception as err:
+                    print ('Unable to parse file {}'.format(filename))
+                    print (err)
+                    continue
+                all_trees_in_graph = []
+                for n, d in graph.g.in_degree():
+                    if d == 0:
+                        all_trees_in_graph.append(Tree(graph.g, n))
+                if len(all_trees_in_graph) > 0:
+                    all_trees.append(combineTrees(all_trees_in_graph))
+            tree = combineTrees(all_trees)
+            tree.label = int(directory[0].split('/')[2])
+            trees.append(tree)          
+    return trees
 
 def ir_default_to_string(stmt):
     return stmt.__str__()

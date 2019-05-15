@@ -132,8 +132,8 @@ def train(model, model_prefix, train_data, val_data, sc, print_every=5000):
 #                                           highest_lr=model.config.highest_lr,
 #                                           max_epochs=model.config.max_epochs)
         lr_scheduler = ReduceLROnPlateau(optimizer=optimizer, 
-                                         patience=2,
-                                         factor=0.8, 
+                                         patience=0,
+                                         factor=0.6, 
                                          verbose=True)
 #         lr_scheduler = StepLR(optimizer=optimizer, 
 #                               step_size=1,
@@ -148,7 +148,8 @@ def train(model, model_prefix, train_data, val_data, sc, print_every=5000):
         print("Epoch completed in {} mins".format((end_time - start_time)//60))
         sys.stdout.flush()
         
-        acc, loss = model_evaluate(model, train_data)
+        idx = np.random.choice(range(len(train_data)), 1000)
+        acc, loss = model_evaluate(model, train_data[idx])
         loss = sum(loss)/len(loss)
         print("Train Acc: {}, loss: {}".format(
             str(round(acc, 2)), 
@@ -218,12 +219,18 @@ def grid_search_models(params, trees,
                     if model_name == 'RecursiveNN':
                         from models import RecursiveNN
                         model = RecursiveNN(vocab, config).cuda()
+                    elif model_name == 'RecursiveNN_BN':
+                        from models import RecursiveNN_BN
+                        model = RecursiveNN_BN(vocab, config).cuda()
                     elif model_name == 'MultiplicativeRecursiveNN':
                         from models import MultiplicativeRecursiveNN
                         model = MultiplicativeRecursiveNN(vocab, config).cuda()
                     elif model_name == 'ResidualRecursiveNN':
                         from models import ResidualRecursiveNN
                         model = ResidualRecursiveNN(vocab, config).cuda()
+                    elif model_name == 'ResidualRecursiveNN_w_N':
+                        from models import ResidualRecursiveNN_w_N
+                        model = ResidualRecursiveNN_w_N(vocab, config).cuda()
                     else:
                         raise "No valid model specified: {}".format(model_name) 
                     if model_weights is not None: 
