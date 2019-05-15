@@ -8,6 +8,7 @@ from binary_analysis_utils import node_from_cfg
 from binary_analysis_utils import ir_default_to_string, ir_generalized_to_string
 from read_from_file import main as read_and_process
 
+
 def remove_comments(line):
     if ';' in line:
         print "the line contains an assembly comment: ", line
@@ -15,6 +16,7 @@ def remove_comments(line):
         line = line.split(';')[0]
         print "the comment has been removed: ", line
     return line
+
 
 def extract_assembly_commands(node, proj=None, to_string=None):
 
@@ -28,9 +30,9 @@ def extract_assembly_commands(node, proj=None, to_string=None):
         commands.append(line_parts[1]) 
     return commands
 
+
 def extract_ir_commands(node, proj, to_string=ir_default_to_string):
     commands = []
-    #irsb = node.irsb
     irsb = proj.factory.block(node.addr).vex
     for stmt in irsb.statements:
         if isinstance(stmt, pyvex.IRStmt.IMark):
@@ -41,6 +43,7 @@ def extract_ir_commands(node, proj, to_string=ir_default_to_string):
         commands.append(to_string(stmt))
     return commands
 
+
 def process_binary_for_bow(filename, extract_commands=extract_assembly_commands, to_string=None):
     lines = []
     for node, proj in node_from_cfg(filename):
@@ -49,6 +52,7 @@ def process_binary_for_bow(filename, extract_commands=extract_assembly_commands,
     if lines:
         return Counter(lines)
     return None
+
 
 def parse_args_and_call_main():
     parser = argparse.ArgumentParser(description='Process binary file-')
@@ -98,6 +102,7 @@ def parse_args_and_call_main():
             out_filename=args.output,
             process=processing_func)
 
+        
 if __name__ == '__main__':
     parse_args_and_call_main()
 

@@ -5,6 +5,7 @@ import pickle as pkl
 from functools import partial
 from multiprocessing import Pool
 
+
 def do_nothing():
     return None
 
@@ -29,7 +30,6 @@ def read_dirs_to_skip():
         for line in f.readlines():
             DIRS_TO_SKIP.append(int(line))
     return DIRS_TO_SKIP
-    #return []
 
 
 def get_subdir_list(dir_name, DIRS_TO_SKIP):
@@ -49,10 +49,9 @@ def main(d, num_processes=1, out_filename=None, process=do_nothing):
 
     subdirs = get_subdir_list(d, dirs_to_skip)
     pool = Pool(processes=num_processes)
-    print 'need to process {} dirs in total'.format(len(subdirs))
-    print(process)
+    print ('need to process {} dirs in total'.format(len(subdirs)))
+    print (process)
     results = pool.map(partial(read_and_process_dir, process_file=process), subdirs)
-   # print(results)
     if out_filename is not None:
         with open(out_filename, 'w') as f:
             pkl.dump(results, f)

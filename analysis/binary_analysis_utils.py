@@ -1,38 +1,16 @@
 import angr 
 import pyvex
 
-
 def node_from_cfg(filename):
     proj = angr.Project(filename, auto_load_libs=False);
     try:
         cfg = proj.analyses.CFG()
     except:
-        return    
+        return                    
+    for i, n in enumerate(cfg.graph.nodes()):
+        if n.block is not None:
+            yield n, proj
 
-    main = cfg.kb.functions["main"]
-    node = cfg.get_all_nodes(main.addr)[0]
-
-    processed_nodes = []
-    nodes_to_process = [node]
-    nodes_to_process_addr = set([node.addr])
-    while nodes_to_process:
-        node = nodes_to_process[0]
-        # bookkeeping
-        nodes_to_process = nodes_to_process[1:]
-        nodes_to_process_addr.remove(node.addr)
-        processed_nodes.append(node.addr)
-
-        if node.block is not None:
-            yield node, proj
-
-        successors = cfg.get_all_successors(node)
-        for s in successors:
-            # if the successing node was not visited already or is not 
-            # scheduled for a visit, schedule it
-            if (s.addr not in processed_nodes) and (s.addr not in nodes_to_process_addr):
-                nodes_to_process.append(s)
-                nodes_to_process_addr.add(s.addr)
-                
 def loadBinASTData(train_r=8, val_r=1, test_r=1):
     directories = os.walk('../bin/')
     next(directories)
