@@ -7,13 +7,16 @@ import sys
 import time
 import numpy as np
 
-def get_cv(X):
-    n = X.shape[0]
-    idx = np.random.choice(np.arange(n), n/5, replace=True)
-    split_point = len(idx)/5
-    train_idx = idx[:split_point]
-    test_idx = idx[split_point:]
-    yield train_idx, test_idx
+
+def get_cv(data):
+    n = data.shape[0]
+    idxs = np.arange(n)
+    np.random.shuffle(idxs)
+    split_point = n/5
+    for i in range(1, 6):
+        train_idx = idxs[:(i-1)*split_point].tolist() + idxs[i*split_point:].tolist()
+        test_idx = idxs[(i-1)*split_point:i*split_point]
+        yield train_idx, test_idx
 
 def main():
     if len(sys.argv) > 2:
