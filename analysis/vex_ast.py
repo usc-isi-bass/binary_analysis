@@ -1,6 +1,9 @@
 import networkx as nx
 from networkx.drawing.nx_agraph import write_dot
 import logging
+import re
+import sys
+import random
 
 l=logging.getLogger("binai.ast")
 l.setLevel('CRITICAL')
@@ -378,10 +381,11 @@ def create_graph_from_cfg(cfg):
             trees.append(tree)
             graph = nx.algorithms.operators.binary.compose(graph, tree)
     adj_m = nx.adj_matrix(cfg.graph)
+    idxs = adj_m.nonzero()
     for i, j in zip(*idxs):
         source_i = 'Sync_{}'.format(i)
         sync_j = 'Source_{}'.format(j)
 
         graph.add_edge(source_i, sync_j)
-    print ("{} nodes and {} edges in graph.".format(len(graph.nodes()), len(graph.edges())))
+    #print ("{} nodes and {} edges in graph.".format(len(graph.nodes()), len(graph.edges())))
     return graph
