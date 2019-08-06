@@ -53,7 +53,7 @@ def process_binary_for_bow(filename, extract_commands=extract_assembly_commands,
         return Counter(lines)
     return None
 
-
+p
 def parse_args_and_call_main():
     parser = argparse.ArgumentParser(description='Process binary file-')
     

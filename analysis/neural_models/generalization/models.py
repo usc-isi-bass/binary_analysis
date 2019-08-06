@@ -51,7 +51,7 @@ class RecursiveNN(torch.nn.Module):
     def forward(self, x):
         _, logits = self._traverse(x.root)
         prediction = logits.max(dim=1)[1]
-        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label-1])))
+        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label])))
         return prediction, loss
     
     def set_weights_for_gen_exp(self, other):
@@ -95,7 +95,7 @@ class RecursiveNN_BN(torch.nn.Module):
     def forward(self, x):
         _, logits = self._traverse(x.root)
         prediction = logits.max(dim=1)[1]
-        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label-1])))
+        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label])))
         return prediction, loss
     
     
@@ -125,7 +125,7 @@ class MRecursiveNN(torch.nn.Module):
     def forward(self, x):
         emb = self._traverse(x.root)
         logits = self.projection(emb.view(1, -1))
-        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label - 1])))
+        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label])))
 
         prediction = logits.max(dim=1)[1]
         return prediction, loss
@@ -161,7 +161,7 @@ class AdditiveRecursiveNN(torch.nn.Module):
     def forward(self, x):
         emb = self._traverse(x.root)
         logits = self.projection(emb.view(1, -1))
-        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label - 1])))
+        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label])))
         prediction = logits.max(dim=1)[1]
         return prediction, loss
 
@@ -209,7 +209,7 @@ class ResidualRecursiveNN(torch.nn.Module):
         emb, _ = self._traverse(x.root)
         logits = self.projection(emb)
         prediction = logits.max(dim=1)[1]
-        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label-1])))
+        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label])))
         return prediction, loss
     
     
@@ -257,7 +257,7 @@ class ResidualRecursiveNN_w_N(torch.nn.Module):
         emb, _ = self._traverse(x.root)
         logits = self.projection(emb)
         prediction = logits.max(dim=1)[1]
-        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label-1])))
+        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label])))
         return prediction, loss
     
     
@@ -300,7 +300,7 @@ class MultiplicativeRecursiveNN(torch.nn.Module):
         emb = self._traverse(x.root)
         logits = self.projection(emb.view(1, -1))
         prediction = logits.max(dim=1)[1]
-        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label-1])))
+        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label])))
         return prediction, loss
     
     def set_weights_for_gen_exp(self, other):
@@ -396,7 +396,7 @@ class EmptyWordRecursiveNN(torch.nn.Module):
         emb = self._traverse(x.root)
         logits = self.projection(emb.view(1, -1))
         prediction = logits.max(dim=1)[1]
-        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label-1])))
+        loss = F.cross_entropy(input=logits, target=Var(torch.tensor([x.label])))
         return prediction, loss
     
     def set_weights_for_gen_exp(self, other):

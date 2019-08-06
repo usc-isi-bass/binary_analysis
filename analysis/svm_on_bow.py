@@ -40,7 +40,7 @@ def main():
     else:
         svc = svm.SVC(decision_function_shape='ovr')
 
-        parameters = {'C':[0.1, 1, 10, 100], 'gamma':[0.01, 0.001, 0.1, 'scale']}
+        parameters = {'C':[0.0001, 0.001, 0.003, 0.1, 0.3, 1, 3, 10, 30, 100], 'gamma':[0.001, 0.01, 0.1, 'scale']}
         clf = GridSearchCV(cv=get_cv(x_train), error_score=0,
             estimator=svc, param_grid=parameters, 
             n_jobs=16, scoring=make_scorer(accuracy_score))

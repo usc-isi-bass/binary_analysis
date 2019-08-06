@@ -3,14 +3,14 @@ from vex_ast import ASTGraph
 
 
 def try_one_file():
-    filename = '/home/shushan/binary_analysis/bin/1/162.exe'
+    filename = '../../bin/1/162.exe'
     parts_of_tree = []
     for node, _ in node_from_cfg(filename):
         parts_of_tree.append(ASTGraph(node.block))
 
 try_one_file()
 def try_all_files():
-    dir_name = '/home/shushan/binary_analysis/bin'
+    dir_name = '../../bin'
     next(directories)
     trees = []
 

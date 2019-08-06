@@ -1,0 +1,60 @@
+data/
+analysis/neural_models/generalization/data
+analysis/neural_models/rnn_on_asts/data
+analysis/neural_models/gcn/data
+analysis/neural_models/rnn_on_asts/weights
+analysis/neural_models/generalization/weights
+
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+
+# OS generated files #
+######################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Misc #
+########
+*.png
+*.jpeg
+*.ipynb
+*.ipynb_checkpoints/
+
+# Python specific #
+###################
+*__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+

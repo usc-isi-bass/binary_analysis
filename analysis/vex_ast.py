@@ -87,7 +87,7 @@ class ASTGraph(object):
             self.g.add_node(tmp, label=tmp)
         
         if s.dst not in self.g.nodes:
-            self.g.add_node(str(id(s.dst)), label=s.dst)
+            self.g.add_node(str(id(s.dst)), label=str(id(s.dst)))
         
         self._add_directed_edge(str(id(s)), tmp, is_dep=True)
         self._add_directed_edge(str(id(s)), str(id(s.dst)), is_dep=True)
