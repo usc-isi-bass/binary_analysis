@@ -1,6 +1,7 @@
 import argparse
 import pyvex
 import pickle as pkl
+import traceback
 from functools import partial
 from collections import Counter
 
@@ -11,10 +12,10 @@ from read_from_file import main as read_and_process
 
 def remove_comments(line):
     if ';' in line:
-        print "the line contains an assembly comment: ", line
+        print ("the line contains an assembly comment: ", line)
         # take everything before the comment
         line = line.split(';')[0]
-        print "the comment has been removed: ", line
+        print ("the comment has been removed: ", line)
     return line
 
 
@@ -39,7 +40,7 @@ def extract_ir_commands(node, proj, to_string=ir_default_to_string):
             continue
         if isinstance(stmt, pyvex.IRStmt.AbiHint):
             continue
-        print to_string(stmt)
+        print (to_string(stmt))
         commands.append(to_string(stmt))
     return commands
 
@@ -53,7 +54,7 @@ def process_binary_for_bow(filename, extract_commands=extract_assembly_commands,
         return Counter(lines)
     return None
 
-p
+
 def parse_args_and_call_main():
     parser = argparse.ArgumentParser(description='Process binary file-')
     

@@ -87,7 +87,7 @@ class ASTGraph(object):
             self.g.add_node(tmp, label=tmp)
         
         if s.dst not in self.g.nodes:
-            self.g.add_node(str(id(s.dst)), label=str(id(s.dst)))
+            self.g.add_node(str(id(s.dst)), label=s.dst)
         
         self._add_directed_edge(str(id(s)), tmp, is_dep=True)
         self._add_directed_edge(str(id(s)), str(id(s.dst)), is_dep=True)
@@ -243,7 +243,7 @@ class ASTGraph(object):
         if n1 == n2:
             return
         for n in [n1, n2]:
-            if not n in self.g.node:
+            if not n in self.g.nodes:
                 raise ASTException("Node %s not in graph" % n)
 
         if is_dep is True:
@@ -283,7 +283,7 @@ def remove_extra_load_edge(g):
                 g.remove_edge(node, successors[0])
                 
                 
-def contract_graph(g):
+def old_contract_graph(g):
     tmp_pattern = re.compile("'t[0-9]+'")
     write_tmp = ['Ist_WrTmp', 'Iex_WrTmp']
     read_tmp = ['Ist_RdTmp', 'Iex_RdTmp']
@@ -325,7 +325,45 @@ def contract_graph(g):
                 to_remove.append(n)
     for n in to_remove:
         g.remove_node(n)
-            
+        
+        
+def contract_graph(g):
+    tmp_pattern = re.compile("t[0-9]+")
+    write_tmp = ['Ist_WrTmp', 'Iex_WrTmp']
+    read_tmp = ['Ist_RdTmp', 'Iex_RdTmp']
+
+    v = False
+    node_contracted = True
+    nodes_to_remove = []
+    while node_contracted:
+        node_contracted = False
+        for node, label_dict in g.nodes(data=True):
+            label = label_dict['label']
+            if tmp_pattern.match(label):
+                parents = list(g.predecessors(node))
+                children = list(g.successors(node))
+                # If there are exactly one parent and child, i.e. it is a chain
+                if len(parents) != 1 or len(children) != 1:
+                    continue
+                parent_label = g.nodes.data()[parents[0]]['label']
+                child_label = g.nodes.data()[children[0]]['label']
+                if parent_label not in write_tmp or child_label not in read_tmp:
+                    continue
+                node_contracted = True
+                parent = parents[0]
+                child = children[0]
+                nodes_to_remove.append(node)
+                g = nx.contracted_nodes(g, node, parent, self_loops=False)
+                g = nx.contracted_nodes(g, node, child, self_loops=False)
+                all_parents = g.predecessors(node)
+                all_children = g.successors(node)
+                for pp in all_parents:
+                    for cc in all_children:
+                        g.add_edge(pp, cc)
+                g.remove_node(node)
+                break
+    return g
+
             
 def contract_iex_const(g):
     const = 'Iex_Const'
@@ -364,7 +402,25 @@ def is_valid_graph(g):
         raise Exception('More than one connected component: {}'.format(nx.number_weakly_connected_components(g)))
         
         
-def create_graph_from_cfg(cfg):
+def check_childless_nodes(graph):
+    for node in graph.nodes():
+        children = list(graph.successors(node))
+        if len(children) == 0: 
+            assert "Sink" in node, "Node {}, {} has no children".format(node, graph.nodes.data()[node]['label'])
+    
+def check_parentless_nodes(graph, i=0):
+    for node in graph.nodes():
+        parents = list(graph.predecessors(node))
+        if len(parents) == 0: 
+            assert node=="Source_{}".format(i), "Node {}, {} has no parents".format(node,graph.nodes.data()[node]['label'])
+
+def check_no_nodes_repeat(new_tree, all_trees):
+    new_tree_nodes = list(new_tree.nodes())
+    for i, t in all_trees:
+        assert len(np.intersect1d(list(t.nodes()), new_tree_nodes)) == 0, i            
+
+        
+def old_create_graph_from_cfg(cfg):
     graph = nx.DiGraph()
     trees = []
     for i, n in enumerate(cfg.graph.nodes()):
@@ -388,4 +444,44 @@ def create_graph_from_cfg(cfg):
 
         graph.add_edge(source_i, sync_j)
     #print ("{} nodes and {} edges in graph.".format(len(graph.nodes()), len(graph.edges())))
+    return graph
+
+
+def create_graph_from_cfg(cfg):
+    graph = nx.DiGraph()
+    trees = []
+    for i, n in enumerate(cfg.graph.nodes()):
+        if n.block is not None:
+            tree = ASTGraph(n.block, i).g
+            is_valid_graph(tree)
+
+            contract_graph(tree)
+            contract_iex_const(tree)
+
+            is_valid_graph(tree)
+            check_no_nodes_repeat(tree, trees)
+            check_parentless_nodes(tree, i)
+            check_childless_nodes(tree)
+            trees.append((i, tree))
+            graph = nx.algorithms.operators.binary.compose(graph, tree)
+
+    for i, n in enumerate(cfg.graph.nodes()):
+        if n.block is None:
+            graph.add_node('Source_{}'.format(i))
+            graph.add_node('Sink_{}'.format(i))
+            graph.add_edge('Source_{}'.format(i), 'Sink_{}'.format(i))
+    adj_m = nx.adj_matrix(cfg.graph)
+    idxs = adj_m.nonzero()
+    for i, j in zip(*idxs):
+        source_i = 'Sink_{}'.format(i)
+        sink_j = 'Source_{}'.format(j)
+
+        graph.add_edge(source_i, sink_j)
+    for i, t in trees:
+        if t.number_of_nodes() == 0:
+            graph.add_edge("Source_{}".format(i), "Sink_{}".format(i)) 
+
+    check_parentless_nodes(graph)
+    check_childless_nodes(graph)
+    assert nx.number_weakly_connected_components(graph) == 1, "The graph is not connected"
     return graph
