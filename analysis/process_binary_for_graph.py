@@ -17,7 +17,7 @@ def old_process_binary_for_graph(filename):
         cfg = proj.analyses.CFGFast()
         graph = create_graph_from_cfg(cfg)
     except:
-        return none 
+        return None 
     return graph
 
 def process_binary_for_graph(filename):
@@ -26,7 +26,7 @@ def process_binary_for_graph(filename):
         cfg = proj.analyses.CFGEmulated(keep_state=True)
         graph = create_graph_from_cfg(cfg)
     except:
-        return none 
+        return None 
     return graph
 
 def process_binary_for_graph_not_safe(filename):
@@ -85,13 +85,13 @@ def parse_args_and_call_main():
 
     if args.binary_filename:
         result = process_binary_for_graph(args.binary_filename)
-        if to_dot:
+        if args.to_dot:
             import pydot
             from networkx.drawing.nx_pydot import write_dot
             
             write_dot(result, args.output)
         else:
-            with open(args.output, 'w') as f:
+            with open(args.output, 'wb') as f:
                 pkl.dump(result, f)
     elif args.dirname:
         read_and_process(
