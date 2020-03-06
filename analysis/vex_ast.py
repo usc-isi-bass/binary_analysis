@@ -406,13 +406,13 @@ def check_childless_nodes(graph):
     for node in graph.nodes():
         children = list(graph.successors(node))
         if len(children) == 0: 
-            assert "Sink" in node, "Node {}, {} has no children".format(node, graph.nodes.data()[node]['label'])
+            assert "Sink" in node,"Node {}, {} has no children".format(node, graph.nodes.data()[node]['label'])
     
 def check_parentless_nodes(graph, i=0):
     for node in graph.nodes():
         parents = list(graph.predecessors(node))
         if len(parents) == 0: 
-            assert node=="Source_{}".format(i), "Node {}, {} has no parents".format(node,graph.nodes.data()[node]['label'])
+            assert node=="Source_{}".format(i), "Node {}, {} has no parents".format(node, graph.nodes.data()[node]['label'])
 
 def check_no_nodes_repeat(new_tree, all_trees):
     new_tree_nodes = list(new_tree.nodes())
