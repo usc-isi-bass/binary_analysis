@@ -4,6 +4,7 @@ import logging
 import re
 import sys
 import random
+import numpy as np
 
 l=logging.getLogger("binai.ast")
 l.setLevel('CRITICAL')
@@ -11,10 +12,8 @@ logging.getLogger('angr.analyses').setLevel('CRITICAL')
 logging.getLogger('cle.loader').setLevel('CRITICAL')
 logging.getLogger('cle.backends').setLevel('CRITICAL')
 
-
 class ASTException(Exception):
     pass
-
 
 class ASTGraph(object):
     """
@@ -38,6 +37,7 @@ class ASTGraph(object):
         self.imark=0
         self.stmt=0
         self.temps={}
+        self.block_idx=i
         self.regs={} # track registers in SSA form
 
         for s in list(block.vex.statements):
@@ -58,12 +58,12 @@ class ASTGraph(object):
                 continue
             self._handle_statement(s)
         if not nx.classes.function.is_empty(self.g):
-            self._add_source_and_sync(i)
+            self._add_source_and_sync()
     
     
-    def _add_source_and_sync(self, i):
-        self.source = 'Source_{}'.format(i)
-        self.sync = 'Sync_{}'.format(i)
+    def _add_source_and_sync(self):
+        self.source = 'Source_{}'.format(self.block_idx)
+        self.sync = 'Sink_{}'.format(self.block_idx)
         
         self.g.add_node(self.source, label=self.source)
         self.g.add_node(self.sync, label=self.sync)
@@ -80,17 +80,19 @@ class ASTGraph(object):
         
         
     def _handle_exit(self, s):
-        self.g.add_node(str(id(s)), label=s.jumpkind)
+        node = "%s_%s" % (self.block_idx, str(id(s)))
+        self.g.add_node(node, label=str(s.jumpkind))
         
-        tmp = "'{}'".format(s.guard)
+        tmp = "%s_%s" % (self.block_idx, s.guard)
         if tmp not in self.g.nodes:
-            self.g.add_node(tmp, label=tmp)
+            self.g.add_node(tmp, label=str(s.guard))
         
-        if s.dst not in self.g.nodes:
-            self.g.add_node(str(id(s.dst)), label=s.dst)
+        dst_node = "%s_%s" % (self.block_idx, id(s.dst))
+        if dst_node not in self.g.nodes:
+            self.g.add_node(dst_node, label=str(s.dst))
         
-        self._add_directed_edge(str(id(s)), tmp, is_dep=True)
-        self._add_directed_edge(str(id(s)), str(id(s.dst)), is_dep=True)
+        self._add_directed_edge(node, tmp, is_dep=True)
+        self._add_directed_edge(node, dst_node, is_dep=True)
         
 
     def _handle_statement(self, s):
@@ -104,7 +106,7 @@ class ASTGraph(object):
         self._to_nodes(s)
 
 
-    def _to_nodes(self, e, sync = None):
+    def _to_nodes(self, e, sync=None):
         """
         Create nodes out of a statement or expression
         We'll create a node for each staetment and expression itself, and a node
@@ -112,7 +114,8 @@ class ASTGraph(object):
         :param e": a pyvex IR expression
         """
         label = self._get_label(e)
-        self.g.add_node(str(id(e)), label=label)
+        node_id = "%s_%d" % (self.block_idx, id(e))
+        self.g.add_node(node_id, label=label)
 
         if label not in self.store_ops:
             node, is_dep_of_e = self._get_tmp_deps(e, label) 
@@ -120,19 +123,19 @@ class ASTGraph(object):
             node = None
             
         if node is not None:
-            self._add_directed_edge(node, str(id(e)), is_dep_of_e)
+            self._add_directed_edge(node, node_id, is_dep_of_e)
             if is_dep_of_e:
                 if sync:
                     self._add_directed_edge(node, sync, is_dep=False)
-                sync = str(id(e))
+                sync = node_id
             else:
                 if sync:
-                    self._add_directed_edge(str(id(e)), sync, is_dep=False)
+                    self._add_directed_edge(node_id, sync, is_dep=False)
                 sync = node
         else:
             if sync:
-                self._add_directed_edge(str(id(e)), sync, is_dep=False)
-            sync = str(id(e))
+                self._add_directed_edge(node_id, sync, is_dep=False)
+            sync = node_id
             
         if hasattr(e, 'args'):
             deps = e.args
@@ -155,13 +158,16 @@ class ASTGraph(object):
         Create a node for statement or expression
         """
         if hasattr(n, 'op'):
-            label = n.op
+            node_label = n.op
         elif hasattr(n, 'tag'):
-            label = n.tag
+            node_label = n.tag
         else:
-            label = n
-        l.debug("Adding node %s with label %s" % (n, label))
-        return label
+            node_label = n
+            print (node_label)
+        if node_label:
+            assert isinstance(node_label, str), node_label
+        l.debug("Adding node %s with label %s" % (n, node_label))
+        return node_label
 
 
     def _get_tmp_deps(self, e, label):
@@ -175,11 +181,11 @@ class ASTGraph(object):
         
         # Handles temp names
         if hasattr(e, 'tmp') and e.tmp is not None:
-            temp = "'t%s'" % e.tmp
-            node = temp
+            node_label = "t%s" % e.tmp
+            node = "%s_%s" % (self.block_idx, node_label)
             
             if node not in self.g.nodes:
-                self.g.add_node(node, label=node)
+                self.g.add_node(node, label=node_label)
             if label in self.write_ops:
                 is_dep = True
             else:
@@ -189,21 +195,23 @@ class ASTGraph(object):
         elif hasattr(e, 'addr') and e.addr is not None:
             # Here, the addr can be a tmp or a pyvex const
             if e.addr.tag == 'Iex_RdTmp':
-                temp = "'t%s'" % e.addr.tmp
-                node = temp
+                node_label = "t%s" % e.addr.tmp
+                node = "%d_%s" % (self.block_idx, node_label)
                 if label != 'Iex_Load':
                     is_dep=True
                 else:
                     is_dep=False
             elif e.addr.tag == 'Iex_Const':
-                node = hex(e.addr.con.value)
+                node_label = str(hex(e.addr.con.value))
+                node = "%d_%s" % (self.block_idx, node_label)
                 is_dep=True
             elif e.addr.tag == 'Iex_Store':
-                node = hex(e.addr.con.value)
+                node_label = str(hex(e.addr.con.value))
+                node = "%d_%s" % (self.block_idx, node_label)
                 is_dep=True
             
             if node not in self.g.nodes:
-                self.g.add_node(node, label=node)
+                self.g.add_node(node, label=node_label)
 
         # Handles reg names (SSA)
         elif hasattr(e, 'offset') and e.offset is not None:
@@ -214,21 +222,21 @@ class ASTGraph(object):
                 instance = self._get_reg_instance(e.offset)
                 is_dep=False
 
-            reg = "'reg%s_%d'" % (e.offset, instance)
-
-            node = reg
-            
+            reg = "reg%s_%d" % (e.offset, instance)
+            node = "%s_%s" % (self.block_idx, reg)
             if node not in self.g.nodes:
-                self.g.add_node(node, label=node)
+                self.g.add_node(node, label=reg)
 
         # Handles constants
         elif hasattr(e, 'con') and e.con is not None:
-            node = hex(e.con.value)
+            node_label = str(hex(e.con.value))
+            node = "%d_%s" % (self.block_idx, node_label)
             is_dep=False
             
             if node not in self.g.nodes:
-                self.g.add_node(node, label=node)
-
+                self.g.add_node(node, label=node_label)
+        if node:
+            assert isinstance(node, str), node
         return node, is_dep
 
 
@@ -270,18 +278,46 @@ class ASTGraph(object):
 
 
 def remove_extra_load_edge(g):
-    tmp_pattern = re.compile("'t[0-9]+'")
+    tmp_pattern = re.compile("t[0-9]+")
     load = ['Ist_Load', 'Iex_Load']
     write_tmp = ['Ist_WrTmp', 'Iex_WrTmp']
     for node in g.nodes:
         successors = list(g.successors(node)) 
         labels = nx.get_node_attributes(g, 'label')
+        # if has both write_tmp and load:
+        # if write_tmp is also the child of load, 
+        # remove the edge between current node and write_tmp
+        if len(successors) <= 1:
+            continue
+        write_child = None
+        load_child = None
+        for s in successors:
+            if labels[s] in load:
+                load_child = s
+            elif labels[s] in write_tmp:
+                write_child = s
+        if write_child and load_child:
+            load_child_successors = g.successors(load_child)
+            if write_child in load_child_successors:
+                g.remove_edge(node, write_child)
+
+                
+def old_remove_extra_load_edge(g):
+    tmp_pattern = re.compile("t[0-9]+")
+    load = ['Ist_Load', 'Iex_Load']
+    write_tmp = ['Ist_WrTmp', 'Iex_WrTmp']
+    for node in g.nodes:
+        successors = list(g.successors(node)) 
+        labels = nx.get_node_attributes(g, 'label')
+        print ("Considering node: ", node, len(successors), successors)
         if len(successors) == 2:
             if (labels[successors[0]] in load) and (labels[successors[1]] in write_tmp):
+                print ("removing edge from {} to {}".format(labels[node], labels[successors[1]]))
                 g.remove_edge(node, successors[1])
             elif (labels[successors[1]] in load) and (labels[successors[0]] in write_tmp):
                 g.remove_edge(node, successors[0])
-                
+                print ("removing edge from {} to {}".format(labels[node], labels[successors[0]]))
+                               
                 
 def old_contract_graph(g):
     tmp_pattern = re.compile("'t[0-9]+'")
@@ -327,14 +363,12 @@ def old_contract_graph(g):
         g.remove_node(n)
         
         
-def contract_graph(g):
+def contract_graph(g, i):
     tmp_pattern = re.compile("t[0-9]+")
     write_tmp = ['Ist_WrTmp', 'Iex_WrTmp']
     read_tmp = ['Ist_RdTmp', 'Iex_RdTmp']
 
-    v = False
     node_contracted = True
-    nodes_to_remove = []
     while node_contracted:
         node_contracted = False
         for node, label_dict in g.nodes(data=True):
@@ -352,18 +386,18 @@ def contract_graph(g):
                 node_contracted = True
                 parent = parents[0]
                 child = children[0]
-                nodes_to_remove.append(node)
                 g = nx.contracted_nodes(g, node, parent, self_loops=False)
                 g = nx.contracted_nodes(g, node, child, self_loops=False)
-                all_parents = g.predecessors(node)
-                all_children = g.successors(node)
+                all_parents = list(g.predecessors(node))
+                all_children = list(g.successors(node))
                 for pp in all_parents:
                     for cc in all_children:
                         g.add_edge(pp, cc)
                 g.remove_node(node)
+                check_childless_nodes(g)
+                check_parentless_nodes(g, i)
                 break
     return g
-
             
 def contract_iex_const(g):
     const = 'Iex_Const'
@@ -439,7 +473,7 @@ def old_create_graph_from_cfg(cfg):
     adj_m = nx.adj_matrix(cfg.graph)
     idxs = adj_m.nonzero()
     for i, j in zip(*idxs):
-        source_i = 'Sync_{}'.format(i)
+        source_i = 'Sink_{}'.format(i)
         sync_j = 'Source_{}'.format(j)
 
         graph.add_edge(source_i, sync_j)
@@ -454,8 +488,8 @@ def create_graph_from_cfg(cfg):
         if n.block is not None:
             tree = ASTGraph(n.block, i).g
             is_valid_graph(tree)
-
-            contract_graph(tree)
+            remove_extra_load_edge(tree)
+            tree = contract_graph(tree, i)
             contract_iex_const(tree)
 
             is_valid_graph(tree)

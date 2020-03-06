@@ -25,7 +25,8 @@ def process_binary_for_graph(filename):
     try:
         cfg = proj.analyses.CFGEmulated(keep_state=True)
         graph = create_graph_from_cfg(cfg)
-    except:
+    except Exception as ex:
+        print (ex)
         return None 
     return graph
 
