@@ -453,7 +453,7 @@ def check_childless_nodes(graph):
     for node in graph.nodes():
         children = list(graph.successors(node))
         if len(children) == 0: 
-            assert "Sink" in node, "Node {}, {} has no children".format(node, graph.nodes.data()[node]['label'])
+            assert "Sink" in node,"Node {}, {} has no children".format(node, graph.nodes.data()[node]['label'])
     
 def check_parentless_nodes(graph, i=0):
     for node in graph.nodes():
