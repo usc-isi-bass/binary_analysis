@@ -1,3 +1,8 @@
+import warnings
+def noop(*args, **kargs): pass
+warnings.warn = noop
+
+#warnings.filterwarnings("ignore", category=DeprecationWarning) 
 import angr
 import argparse
 import logging
@@ -6,9 +11,9 @@ import traceback
 from functools import partial
 from collections import Counter
 
-from read_from_file import main as read_and_process
+#from read_from_file import main as read_and_process
+from read_from_file import read_and_process_dir
 from vex_ast import create_graph_from_cfg
-
 logging.getLogger('cle.elf').setLevel('CRITICAL')
 
 def old_process_binary_for_graph(filename):
@@ -23,10 +28,21 @@ def old_process_binary_for_graph(filename):
 def process_binary_for_graph(filename):
     proj = angr.Project(filename, auto_load_libs=False);
     try:
-        cfg = proj.analyses.CFGEmulated(keep_state=True)
+        cfg = proj.analyses.CFGEmulated()
+        #cfg = proj.analyses.CFGFast()
+    except Exception as ex:
+        import sys
+        import traceback
+        print ("Exception occured while creating the CFGEmulated for file ", filename)
+        traceback.print_exc(file=sys.stdout)
+        return None
+    try:
         graph = create_graph_from_cfg(cfg)
     except Exception as ex:
-        print (ex)
+        import sys
+        import traceback
+        print ("Exception occured while converting CFG to a graph for file ", filename)
+        traceback.print_exc(file=sys.stdout)
         return None 
     return graph
 
@@ -95,11 +111,14 @@ def parse_args_and_call_main():
             with open(args.output, 'wb') as f:
                 pkl.dump(result, f)
     elif args.dirname:
-        read_and_process(
+        results = read_and_process_dir(
             args.dirname, 
-            num_processes=args.num_processes,
-            out_filename=args.output,
-            process=process_binary_for_graph)
+            #num_processes=args.num_processes,
+            #out_filename=args.output,
+            process_binary_for_graph)
+        print ("Writing result to ", args.output)
+        with open(args.output, 'wb') as f:
+            pkl.dump(results, f)
     elif args.pickle_dir:
         read_from_pickle(args.pickle_dir, args.output, 
                          args.save_every, args.start_from)

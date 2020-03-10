@@ -11,13 +11,18 @@ l.setLevel('CRITICAL')
 logging.getLogger('angr.analyses').setLevel('CRITICAL')
 logging.getLogger('cle.loader').setLevel('CRITICAL')
 logging.getLogger('cle.backends').setLevel('CRITICAL')
+logging.getLogger('angr.state_plugins').setLevel('CRITICAL')
 
 class ASTException(Exception):
     pass
 
+
+def isNaN(num):
+    return num != num
+
 class ASTGraph(object):
     """
-    Builds an Abstract Syntax Tree representing VEX operations.
+    Builds an Abstract Syntax Tree repressizeenting VEX operations.
     """
 
     read_ops = ['Ist_RdTmp', 'Iex_RdTmp', 'Iex_Get']
@@ -229,7 +234,15 @@ class ASTGraph(object):
 
         # Handles constants
         elif hasattr(e, 'con') and e.con is not None:
-            node_label = str(hex(e.con.value))
+            v = e.con.value
+            if isinstance(v, float):
+                if not isNaN(v):
+                    assert v.is_integer(), "The value of the constant is not an integer: {}! ".format(v)
+                    v = int(v)
+            if isNaN(v):
+                node_label = "NaN"
+            else:
+                node_label = str(hex(v))
             node = "%d_%s" % (self.block_idx, node_label)
             is_dep=False
             
@@ -446,7 +459,10 @@ def check_parentless_nodes(graph, i=0):
     for node in graph.nodes():
         parents = list(graph.predecessors(node))
         if len(parents) == 0: 
-            assert node=="Source_{}".format(i), "Node {}, {} has no parents".format(node,graph.nodes.data()[node]['label'])
+            if i < 0:
+                assert "Source" in node, "Node {}, {} has no parents (no i was specified)".format(node, graph.nodes.data()[node]['label'])
+            else:
+                assert node=="Source_{}".format(i), "Node {}, {} has no parents, i={}".format(node,graph.nodes.data()[node]['label'],i)
 
 def check_no_nodes_repeat(new_tree, all_trees):
     new_tree_nodes = list(new_tree.nodes())
@@ -515,7 +531,7 @@ def create_graph_from_cfg(cfg):
         if t.number_of_nodes() == 0:
             graph.add_edge("Source_{}".format(i), "Sink_{}".format(i)) 
 
-    check_parentless_nodes(graph)
+    check_parentless_nodes(graph, i=-1)
     check_childless_nodes(graph)
     assert nx.number_weakly_connected_components(graph) == 1, "The graph is not connected"
     return graph
