@@ -85,21 +85,26 @@ def get_vocab(vocab_filename, train_data, num_processes):
 
 def main(filename, num_processes, threshold, num_shots):
     np.random.seed(42)
-    experiment = "{}_shot".format(num_shots)
+#     experiment = "{}_shot".format(num_shots)
     with open(filename + '.pkl', 'rb') as f:
         BoWs = pkl.load(f)
         print (len(BoWs), ' classes to process in total')
-       
-    train_data, train_labels, \
-        dval_train, dval_train_labels, dval_test, dval_test_labels, \
-        dtest_train, dtest_train_labels, dtest_test, dtest_test_labels = generalizationSplit(BoWs, num_shots)
-    data = [
-            (train_data, train_labels, "_train_"),
-            (dval_train, dval_train_labels, "_dval_train_"), 
-            (dval_test, dval_test_labels, "_dval_test_"),
-            (dtest_train, dtest_train_labels, "_dtest_train_"),
-            (dtest_test, dtest_test_labels, "_dtest_test_")
-        ]
+
+    data = []
+    labels = []
+    for i in range(len(BoWs)):
+        if isinstance(BoWs[i], tuple):
+            data_i = BoWs[i][0]
+            label = int(BoWs[i][1].strip('bin/'))
+        else:
+            data_i = BoWs[i]
+            label = i 
+        n = len(data_i)    
+        data.extend(data_i)
+        labels.extend(label*np.ones(n))
+
+    split = generalizationExperimentSplitData(data, labels, train_size=50, val_size=25, test_size=None)
+    train_data, train_labels, val_data, val_labels, test_data, test_labels = split
         
     vocab_filename = filename + '.vocab_untrimmed_{}'.format(experiment)
     print ('\nVocab filename:{}'.format(vocab_filename))

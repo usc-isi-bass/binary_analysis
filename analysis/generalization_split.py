@@ -133,3 +133,38 @@ def get_episode(x, y, shots):
             test_idx = np.delete(test_idx, remove_from_test_idx)
         yield train_idx, test_idx
     
+    
+def getIndexes(labels, selectLabels):
+    idxs = []
+    for l in selectLabels:
+        idxs.extend(np.argwhere(labels == l))
+    idxs = np.asarray(idxs).flatten()
+    assert np.array_equal(np.unique(labels[idxs]), np.unique(selectLabels))
+    return idxs
+    
+    
+def generalizationExperimentSplitData(data, labels, train_size, val_size=None, test_size=None):
+    data = np.asarray(data)
+    unique_labels = np.unique(labels)
+    
+    if test_size and val_size:
+        assert (train_size + test_size + val_size <= len(unique_labels))
+    print("All labels: ", np.unique(labels))
+    train_labels, val_and_test_labels = train_test_split(unique_labels, train_size=train_size, random_state=12)
+    val_labels, test_labels = train_test_split(val_and_test_labels, train_size=val_size, test_size=test_size, random_state=13)
+    print ("{} train labels: {}, \n{} val labels: {}, \n{} test labels: {}".format(
+        len(train_labels), train_labels, len(val_labels), val_labels, len(test_labels), test_labels))
+    
+    train_idx = getIndexes(labels, train_labels)
+    train_data = data[train_idx]
+    train_labels = labels[train_idx]
+    
+    val_idx = getIndexes(labels, val_labels)
+    val_data = data[val_idx]
+    val_labels = labels[val_idx]
+    
+    test_idx = getIndexes(labels, test_labels)
+    test_data = data[test_idx]
+    test_labels = labels[test_idx]
+    
+    return train_data, train_labels, val_data, val_labels, test_data, test_labels

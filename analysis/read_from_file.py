@@ -20,7 +20,7 @@ def read_and_process_dir(dir_name, process_file):
         if result is not None:
             results_for_d.append(result)
     
-    print dir_name, len(results_for_d)
+    print (dir_name, len(results_for_d))
     return results_for_d
 
 
@@ -40,7 +40,7 @@ def get_subdir_list(dir_name, DIRS_TO_SKIP):
             continue
         if int(d) not in DIRS_TO_SKIP:
             dir_names.append(dir_name + '/' + d)
-    print dir_names
+    print (dir_names)
     return dir_names
 
 
