@@ -1,9 +1,9 @@
 data/
-analysis/neural_models/generalization/data
-analysis/neural_models/rnn_on_asts/data
-analysis/neural_models/gcn/data
-analysis/neural_models/rnn_on_asts/weights
-analysis/neural_models/generalization/weights
+neural_models/generalization/data
+neural_models/rnn_on_asts/data
+neural_models/gcn/data
+neural_models/rnn_on_asts/weights
+neural_models/generalization/weights
 
 # Compiled source #
 ###################
@@ -26,6 +26,9 @@ analysis/neural_models/generalization/weights
 *.rar
 *.tar
 *.zip
+*.pkl
+*.ckp.*
+*.ptpkl
 
 # Logs and databases #
 ######################
