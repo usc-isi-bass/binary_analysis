@@ -80,9 +80,6 @@ def run_epoch(fc, gcn, optimizer_fc, optimizer_gcn, data,
         adj, feat, masked_feat, mask = batch
         if adj.shape[0] > 15000:
             continue
-#         adj_v = Variable(torch.FloatTensor(adj.todense()), requires_grad=True).cuda()
-#         feat_v = Variable(torch.FloatTensor(masked_feat.todense()), requires_grad=True).cuda()
-#         mask_v = Variable(torch.LongTensor(mask).cuda())
         adj_v = Variable(torch.FloatTensor(adj.todense())).cuda()
         feat_v = Variable(torch.FloatTensor(masked_feat.todense())).cuda()
         mask_v = Variable(torch.LongTensor(mask).cuda())

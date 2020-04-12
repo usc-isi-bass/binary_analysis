@@ -11,7 +11,7 @@ class Args():
         self.encoder = 'gcn'
         
         ### What model to use for prediction
-        self.predictor = 'mlp'
+        self.predictor = 'fc'
         
         ### Which dataset is used in the experiment
         # old - the tokens are truncated by frequency
@@ -34,13 +34,14 @@ class Args():
         self.encoder_nfeat = None # depends on the data type and fold
         self.encoder_layer_dims = [512, 256, 256]
         self.encoder_nout = 128
+        self.encoder_softmax = True
         
         self.predictor_nfeat = 2*self.encoder_nout
         self.predictor_layer_dims = [] 
-        self.encoder_nout = 2
+        self.predictor_nout = 2
         
         ### training config
-        self.epochs = 3000 # now one epoch means self.batch_ratio x batch_size
+        self.max_epochs = 3000 # now one epoch means self.batch_ratio x batch_size
         # self.epochs_test_start = 100
         # self.epochs_test = 100
         # self.epochs_log = 100
