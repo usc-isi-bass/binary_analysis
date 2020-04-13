@@ -62,3 +62,4 @@ Thumbs.db
 *.egg
 
 /venv/
+/.idea
