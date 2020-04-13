@@ -7,11 +7,11 @@ from torch import optim
 from torch.autograd import Variable
 from torch.utils.tensorboard import SummaryWriter
 from .utils import construct_gcn_batch
-from neural_models.autoencoders.models.gcn import GCN
-from neural_models.autoencoders.models.fully_connected import FC
+from .models.gcn import GCN
+from .models.fully_connected import FC
 
 
-def run_epoch(epoch, args, adj, train, models, batch_generator, optimizers):
+def run_epoch(epoch, args, all_adj_matrices, train, models, batch_generator, optimizers, print_iter=0):
     epoch_loss = 0
     epoch_acc = 0
 
@@ -23,8 +23,8 @@ def run_epoch(epoch, args, adj, train, models, batch_generator, optimizers):
             model.eval()
     gcn, fc = models[0], models[1]
 
-    non_zero_xs = [a.nonzero()[0] for a in adj]
-    non_zero_ys = [a.nonzero()[1] for a in adj]
+    non_zero_xs = [A.nonzero()[0] for A in all_adj_matrices]
+    non_zero_ys = [A.nonzero()[1] for A in all_adj_matrices]
 
     if train:
         log_str = "Train"
@@ -71,8 +71,8 @@ def run_epoch(epoch, args, adj, train, models, batch_generator, optimizers):
         gcn_repr_for_nonedges = torch.cat([gcn_n3, gcn_n4], dim=1)
         y_out_for_nonedges = fc(gcn_repr_for_nonedges)
 
-        is_an_edge = np.asarray(adj[batch_idx].todense()[nonedge_idxs[:num_edges],
-                                                               nonedge_idxs[num_edges:]]).reshape(-1)
+        is_an_edge = np.asarray(all_adj_matrices[batch_idx].todense()[nonedge_idxs[:num_edges],
+                                                         nonedge_idxs[num_edges:]]).reshape(-1)
         b = np.zeros((num_edges, 2))
         for bi, ie in zip(b, is_an_edge):
             bi[ie] = 1
@@ -90,26 +90,27 @@ def run_epoch(epoch, args, adj, train, models, batch_generator, optimizers):
         epoch_loss += loss.data.item()
         epoch_acc += acc
 
-        if batch_idx % args.print_every == 0:
+        if train and batch_idx % args.batches_log == 0:
             if "loss" in args.report_metrics:
-                args.writer.add_scalar(log_str + " loss", loss.data.item(), args.print_iter)
+                args.writer.add_scalar(log_str + " loss", loss.data.item(), print_iter)
             if "acc" in args.report_metrics:
-                args.writer.add_scalar(log_str + " acc", acc, args.print_iter)
-            args.print_iter += 1
+                args.writer.add_scalar(log_str + " acc", acc, print_iter)
+            print_iter += 1
 
     epoch_loss = epoch_loss / batch_idx
     epoch_acc = epoch_acc / batch_idx
-
-    args.writer(log_str + " epoch loss", epoch_loss, epoch)
-    args.writer(log_str + " epoch acc", epoch_acc, epoch)
+    if epoch % args.epochs_log == 0:
+        args.writer(log_str + " epoch loss", epoch_loss, epoch)
+        args.writer(log_str + " epoch acc", epoch_acc, epoch)
+    return print_iter
 
 
 def main(args):
-    with open('/nas/home/shushan/updated_graphs/fold_0/{args.data}_gcn_on_oj_test.pkl', 'rb') as f:
+    with open('/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_test.pkl'.format(args.data), 'rb') as f:
         test = pkl.load(f)
-    with open('/nas/home/shushan/updated_graphs/fold_0/{args.data}_gcn_on_oj_train.pkl', 'rb') as f:
+    with open('/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_train.pkl'.format(args.data), 'rb') as f:
         train = pkl.load(f)
-    with open('/nas/home/shushan/updated_graphs/fold_0/{args.data}_gcn_on_oj_val.pkl', 'rb') as f:
+    with open('/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_val.pkl'.format(args.data), 'rb') as f:
         val = pkl.load(f)
 
     train_adj, train_feat, train_labels = train
@@ -121,26 +122,33 @@ def main(args):
     writer = SummaryWriter(args.writer_name + args.writer_comment)
     args.writer = writer
 
-    gcn = GCN(train_feat[0].shape[1], args.encoder_layer_dims, args.encoder_nout)).cuda()
+    gcn = GCN(nfeat=train_feat[0].shape[1], layer_dims=args.encoder_layer_dims,
+              nout=args.encoder_nout, dropout=False, softmax=True, name="GCN").cuda()
     optimizer_gcn = optim.Adam(list(gcn.parameters()), lr=args.lr)
-    fc = FC(nfeat=args.predictor_nfeat, args.predictor_layer_dims, args.predictor_nout = 2).cuda()
+    args.predictor_nfeat = 2 * args.encoder_nout
+    fc = FC(nfeat=args.predictor_nfeat, layer_dims=args.predictor_layer_dims,
+            nout=args.predictor_nout, name="FC").cuda()
     optimizer_fc = optim.Adam(list(fc.parameters()), lr=args.lr)
 
-    for epoch in range(max_epochs):
+    print_iter = 0
+    for epoch in range(1, args.max_epochs + 1):
         run_epoch(epoch=epoch,
                   args=args,
-                  adj=train_adj,
+                  all_adj_matrices=train_adj,
                   train=True,
                   models=[gcn, fc],
                   optimizers=[optimizer_gcn, optimizer_fc],
-                  batch_generator=construct_gcn_batch(train_adj, train_feat, batch_size=args.batch_size))
+                  batch_generator=construct_gcn_batch(train_adj, train_feat,
+                                                      batch_size=args.batch_size),
+                  print_iter=0)
         run_epoch(epoch=epoch,
                   args=args,
-                  adj=val_adj,
+                  all_adj_matrices=val_adj,
                   train=False,
                   models=[gcn, fc],
                   optimizers=[optimizer_gcn, optimizer_fc],
-                  batch_generator=construct_gcn_batch(val_adj, val_feat, batch_size=args.batch_size))
+                  batch_generator=construct_gcn_batch(val_adj, val_feat,
+                                                      batch_size=args.batch_size))
 
 
 if __name__ == '__main__':

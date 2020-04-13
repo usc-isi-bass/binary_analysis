@@ -1,10 +1,9 @@
 import math
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 from torch.nn.parameter import Parameter
 from torch.nn.modules.module import Module
+
 
 class GraphConvolution(Module):
 
@@ -32,13 +31,13 @@ class GraphConvolution(Module):
             return output + self.bias
         else:
             return output
-    
+
     def __repr__(self):
         return self.__class__.__name__ + ' (' \
                + str(self.in_features) + ' -> ' \
                + str(self.out_features) + ')'
 
-    
+
 class SparseGraphConvolution(Module):
     def __init__(self, in_features, out_features, bias=True):
         super(SparseGraphConvolution, self).__init__()
@@ -69,5 +68,3 @@ class SparseGraphConvolution(Module):
         return self.__class__.__name__ + ' (' \
                + str(self.in_features) + ' -> ' \
                + str(self.out_features) + ')'
-
-    

@@ -1,25 +1,13 @@
-import math
-import numpy as np
-import string
-import time
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.nn.init as init
-import unicodedata
-import re
-import random
-from collections import OrderedDict
-from io import open
-from torch import optim
 from torch.autograd import Variable
-from torch.nn.parameter import Parameter
-from torch.nn.modules.module import Module
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 
+
 class GRU_plain(nn.Module):
-    def __init__(self, input_size, embedding_size, hidden_size, 
-                 num_layers, name, has_input=True, has_output=False, 
+    def __init__(self, input_size, embedding_size, hidden_size,
+                 num_layers, name, has_input=True, has_output=False,
                  output_size=None):
         super(GRU_plain, self).__init__()
         self.num_layers = num_layers
@@ -30,11 +18,11 @@ class GRU_plain(nn.Module):
 
         if has_input:
             self.input = nn.Linear(input_size, embedding_size)
-            self.rnn = nn.GRU(input_size=embedding_size, 
+            self.rnn = nn.GRU(input_size=embedding_size,
                               hidden_size=hidden_size, num_layers=num_layers,
                               batch_first=True)
         else:
-            self.rnn = nn.GRU(input_size=input_size, hidden_size=hidden_size, 
+            self.rnn = nn.GRU(input_size=input_size, hidden_size=hidden_size,
                               num_layers=num_layers, batch_first=True)
         if has_output:
             self.output = nn.Sequential(
