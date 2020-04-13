@@ -1,3 +1,4 @@
+import os
 
 ### program configuration
 class Args():
@@ -5,7 +6,9 @@ class Args():
         ### if clean tensorboard
         self.clean_tensorboard = False
         ### Which CUDA GPU device is used for training
-        self.cuda = 1
+        self.cuda = int(os.getenv("CUDA"))
+        assert self.cuda >= 0 and self.cuda <4
+        print("Training on GPU: ", self.cuda)
 
         ### What model to use for graph representation
         self.encoder = 'gcn'
@@ -41,13 +44,16 @@ class Args():
         self.predictor_nout = 2
         
         ### training config
-        self.max_epochs = 3000
+        self.max_epochs = 5
         self.batch_size = 1
         # self.epochs_test_start = 100
         # self.epochs_test = 100
-        self.batches_log = 100
+        self.batches_log = 500
         self.epochs_log = 1
-        # self.epochs_save = 100
+        self.epochs_save = 5
         self.lr = 0.0001
         # self.milestones = [400, 1000]
         # self.lr_rate = 0.99
+
+        self.logs_dir = "neural_models/autoencoders/runs/"
+        self.model_ckp_dir = "neural_models/autoencoders/model_checkpoints/"

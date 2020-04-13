@@ -99,7 +99,7 @@ def run_epoch(epoch, args, all_adj_matrices, train, models, batch_generator, opt
 
     epoch_loss = epoch_loss / batch_idx
     epoch_acc = epoch_acc / batch_idx
-    if epoch % args.epochs_log == 0:
+    if epoch % args.epochs_log == 0 or (not train):
         args.writer(log_str + " epoch loss", epoch_loss, epoch)
         args.writer(log_str + " epoch acc", epoch_acc, epoch)
     return print_iter
@@ -119,7 +119,7 @@ def main(args):
 
     torch.cuda.set_device(args.cuda)
 
-    writer = SummaryWriter(args.writer_name + args.writer_comment)
+    writer = SummaryWriter(args.logs_dir + args.writer_name + args.writer_comment)
     args.writer = writer
 
     gcn = GCN(nfeat=train_feat[0].shape[1], layer_dims=args.encoder_layer_dims,
@@ -141,6 +141,10 @@ def main(args):
                   batch_generator=construct_gcn_batch(train_adj, train_feat,
                                                       batch_size=args.batch_size),
                   print_iter=0)
+        torch.save(gcn.state_dict(), args.model_ckp_dir + "{}_{}_{}_gcn".format(args.writer_name,
+                                                                                args.writer_comment, epoch))
+        torch.save(fc.state_dict(), args.model_ckp_dir + "{}_{}_{}_fc".format(args.writer_name,
+                                                                                args.writer_comment, epoch))
         run_epoch(epoch=epoch,
                   args=args,
                   all_adj_matrices=val_adj,

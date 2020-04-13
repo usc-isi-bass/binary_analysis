@@ -13,26 +13,24 @@ args = Args()
 
 ### CHECK THAT THIS IS A CLEAN REPOSITORY ###
 
-args.EXP_NAME = "E_pred_GCN_001"
+args.EXP_NAME = "E_pred_GCN_002"
 args.EXP_DATE = "0409"
 
 # different_setups
 experiment_setup = {"writer_name": args.EXP_DATE + "_" + args.EXP_NAME,
                     "writer_comment": None,
                     "encoder_layer_dims": None,
-                    "encoder_nout": None,
-                    "predictor_nfeat": None,
+                    "encoder_nout": 64,
+                    "predictor_nfeat": 128,
                     "predictor_layer_dims": [32],
                     "predictor_nout": 2,
                     "print_every": 100,
                     "report_metrics": ["loss", "acc"]}
 
-parameters = [
-    "encoder_layer_dims", "encoder_nout"]
-values = [
-    ([1028, 512], 256),
-    ([512, 256], 128),
-    ([256, 128], 64)]
+parameters = ["encoder_layer_dims"]
+values = [([256, 128],),
+          ([256, 256, 128],),
+          ([256,  256, 256, 128],)]
 
 for args in get_experiment_args(args, experiment_setup, parameters, values):
     main(args)
