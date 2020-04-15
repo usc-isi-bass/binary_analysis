@@ -23,6 +23,9 @@ class Args():
         self.data = 'old'
         #  self.data = 'two_digit'
         # self.data = 'const'
+
+        ### Whether to test on test or validation set
+        self.use_test_set = False
                 
         ### Whether to use or skip graphs that are too large
         self.use_large_graphs = False
@@ -46,14 +49,20 @@ class Args():
         ### training config
         self.max_epochs = 5
         self.batch_size = 1
-        # self.epochs_test_start = 100
-        # self.epochs_test = 100
+        self.epochs_test_start = 5
+        self.epochs_test = 1
         self.batches_log = 500
         self.epochs_log = 1
         self.epochs_save = 5
         self.lr = 0.0001
         # self.milestones = [400, 1000]
         # self.lr_rate = 0.99
+
+        ### debugging config
+        self.use_entire_training_set = True
+        self.num_training_examples = None
+        self.use_entire_testing_set = True
+        self.num_testing_examples = None
 
         self.logs_dir = "neural_models/autoencoders/runs/"
         self.model_ckp_dir = "neural_models/autoencoders/model_checkpoints/"

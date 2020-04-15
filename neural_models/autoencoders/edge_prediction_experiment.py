@@ -12,8 +12,8 @@ from .models.fully_connected import FC
 
 
 def run_epoch(epoch, args, all_adj_matrices, train, models, batch_generator, optimizers, print_iter=0):
-    epoch_loss = 0
-    epoch_acc = 0
+    epoch_loss = []
+    epoch_acc = []
 
     if train:
         for model in models:
@@ -89,8 +89,8 @@ def run_epoch(epoch, args, all_adj_matrices, train, models, batch_generator, opt
             for optimizer in optimizers:
                 optimizer.step()
 
-        epoch_loss += loss.data.item()
-        epoch_acc += acc
+        epoch_loss.append(loss.data.item())
+        epoch_acc.append(acc)
 
         if train and batch_idx % args.batches_log == 0:
             if "loss" in args.report_metrics:
@@ -99,8 +99,8 @@ def run_epoch(epoch, args, all_adj_matrices, train, models, batch_generator, opt
                 args.writer.add_scalar(log_str + " acc", acc, print_iter)
             print_iter += 1
 
-    epoch_loss = epoch_loss / batch_idx
-    epoch_acc = epoch_acc / batch_idx
+    epoch_loss = np.mean(epoch_loss)
+    epoch_acc = np.mean(epoch_acc)
     if epoch % args.epochs_log == 0 or (not train):
         args.writer.add_scalar(log_str + " epoch loss", epoch_loss, epoch)
         args.writer.add_scalar(log_str + " epoch acc", epoch_acc, epoch)
@@ -108,16 +108,28 @@ def run_epoch(epoch, args, all_adj_matrices, train, models, batch_generator, opt
 
 
 def main(args):
-    with open('/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_test.pkl'.format(args.data), 'rb') as f:
-        test = pkl.load(f)
     with open('/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_train.pkl'.format(args.data), 'rb') as f:
         train = pkl.load(f)
-    with open('/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_val.pkl'.format(args.data), 'rb') as f:
-        val = pkl.load(f)
+    if args.use_test_set:
+        with open('/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_test.pkl'.format(args.data), 'rb') as f:
+            test = pkl.load(f)
+        val_adj, val_feat, val_labels = test
+    else:
+        with open('/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_val.pkl'.format(args.data), 'rb') as f:
+            val = pkl.load(f)
+        val_adj, val_feat, val_labels = val
 
     train_adj, train_feat, train_labels = train
-    test_adj, test_feat, test_labels = test
-    val_adj, val_feat, val_labels = val
+
+    if not args.use_entire_training_set:
+        train_adj = train_adj[:args.num_training_examples]
+        train_feat = train_feat[:args.num_training_examples]
+        train_labels = train_labels[:args.num_training_examples]
+
+    if not args.use_entire_testing_set:
+        val_adj = val_adj[:args.num_testing_examples]
+        val_feat = val_feat[:args.num_testing_examples]
+        val_labels = val_labels[:args.num_testing_examples]
 
     torch.cuda.set_device(args.cuda)
 
@@ -143,18 +155,21 @@ def main(args):
                                batch_generator=construct_gcn_batch(train_adj, train_feat,
                                                                    batch_size=args.batch_size),
                                print_iter=print_iter)
-        torch.save(gcn.state_dict(), args.model_ckp_dir + "{}_{}_{}_gcn".format(args.writer_name,
-                                                                                args.writer_comment, epoch))
-        torch.save(fc.state_dict(), args.model_ckp_dir + "{}_{}_{}_fc".format(args.writer_name,
-                                                                              args.writer_comment, epoch))
-        run_epoch(epoch=epoch,
-                  args=args,
-                  all_adj_matrices=val_adj,
-                  train=False,
-                  models=[gcn, fc],
-                  optimizers=[optimizer_gcn, optimizer_fc],
-                  batch_generator=construct_gcn_batch(val_adj, val_feat,
-                                                      batch_size=args.batch_size))
+
+        if epoch % args.epochs_save == 0:
+            torch.save(gcn.state_dict(), args.model_ckp_dir + "{}_{}_{}_gcn".format(args.writer_name,
+                                                                                    args.writer_comment, epoch))
+            torch.save(fc.state_dict(), args.model_ckp_dir + "{}_{}_{}_fc".format(args.writer_name,
+                                                                                  args.writer_comment, epoch))
+        if epoch >= args.epochs_test_start and epoch % args.epochs_test == 0:
+            run_epoch(epoch=epoch,
+                      args=args,
+                      all_adj_matrices=val_adj,
+                      train=False,
+                      models=[gcn, fc],
+                      optimizers=[optimizer_gcn, optimizer_fc],
+                      batch_generator=construct_gcn_batch(val_adj, val_feat,
+                                                          batch_size=args.batch_size))
 
 
 if __name__ == '__main__':

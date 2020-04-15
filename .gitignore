@@ -63,3 +63,4 @@ Thumbs.db
 
 /venv/
 /.idea
+/neural_models/autoencoders/experiment_outs/

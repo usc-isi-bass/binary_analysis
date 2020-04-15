@@ -1,9 +1,6 @@
 import sys
 import os
 PROJ_PATH = os.getenv('PROJ_PATH')
-# sys.path.append('{PROJ_PATH}/neural_models/autoencoders')
-# sys.path.append('{PROJ_PATH}/neural_models/autoencoders/models')
-
 
 """ CHECK THAT THIS IS A CLEAN REPOSITORY """
                 
@@ -35,7 +32,10 @@ def get_experiment_args(args, experiment_setup, parameters, values):
     for name, value in experiment_setup.items():
         setattr(args, name, value)
     for i, set_of_values in enumerate(values):
-        args.writer_comment = str(i).zfill(2)
+        if args.writer_comment is None:
+            args.writer_comment = str(i).zfill(2)
+        else:
+            args.writer_comment = str(int(args.writer_comment) + 1).zfill(2)
         for param, value in zip(parameters, set_of_values):
             setattr(args, param, value)
         # redirect stdout & stderr to a file
