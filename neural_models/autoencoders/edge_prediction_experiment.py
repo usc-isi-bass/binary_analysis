@@ -71,21 +71,23 @@ def run_epoch(epoch, args, all_adj_matrices, train, models, batch_generator, opt
         gcn_repr_for_nonedges = torch.cat([gcn_n3, gcn_n4], dim=1)
         y_out_for_nonedges = fc(gcn_repr_for_nonedges)
 
-        is_an_edge = np.asarray(all_adj_matrices[batch_idx].todense()[nonedge_idxs[:num_edges],
-                                                         nonedge_idxs[num_edges:]]).reshape(-1)
+        is_edge = np.asarray(all_adj_matrices[batch_idx].todense()[nonedge_idxs[:num_edges],
+                                                                   nonedge_idxs[num_edges:]]).reshape(-1)
         b = np.zeros((num_edges, 2))
-        for bi, ie in zip(b, is_an_edge):
+        for bi, ie in zip(b, is_edge):
             bi[ie] = 1
         y_for_nonedges = torch.FloatTensor(b).cuda()
         loss += F.binary_cross_entropy_with_logits(y_out_for_nonedges, y_for_nonedges, reduce=None)
-        loss.backward()
+        if train:
+            loss.backward()
 
         acc = (torch.argmax(y_for_edges, 1).eq(torch.argmax(y_out_for_edges, 1).long())).sum().data.item()
         acc += (torch.argmax(y_for_nonedges, 1).eq(torch.argmax(y_out_for_nonedges, 1)).long()).sum().data.item()
         acc = acc / (2 * num_edges)
 
-        for optimizer in optimizers:
-            optimizer.step()
+        if train:
+            for optimizer in optimizers:
+                optimizer.step()
 
         epoch_loss += loss.data.item()
         epoch_acc += acc
@@ -100,8 +102,8 @@ def run_epoch(epoch, args, all_adj_matrices, train, models, batch_generator, opt
     epoch_loss = epoch_loss / batch_idx
     epoch_acc = epoch_acc / batch_idx
     if epoch % args.epochs_log == 0 or (not train):
-        args.writer(log_str + " epoch loss", epoch_loss, epoch)
-        args.writer(log_str + " epoch acc", epoch_acc, epoch)
+        args.writer.add_scalar(log_str + " epoch loss", epoch_loss, epoch)
+        args.writer.add_scalar(log_str + " epoch acc", epoch_acc, epoch)
     return print_iter
 
 
@@ -123,7 +125,7 @@ def main(args):
     args.writer = writer
 
     gcn = GCN(nfeat=train_feat[0].shape[1], layer_dims=args.encoder_layer_dims,
-              nout=args.encoder_nout, dropout=False, softmax=True, name="GCN").cuda()
+              nout=args.encoder_nout, dropout=False, softmax=args.encoder_softmax, name="GCN").cuda()
     optimizer_gcn = optim.Adam(list(gcn.parameters()), lr=args.lr)
     args.predictor_nfeat = 2 * args.encoder_nout
     fc = FC(nfeat=args.predictor_nfeat, layer_dims=args.predictor_layer_dims,
@@ -132,19 +134,19 @@ def main(args):
 
     print_iter = 0
     for epoch in range(1, args.max_epochs + 1):
-        run_epoch(epoch=epoch,
-                  args=args,
-                  all_adj_matrices=train_adj,
-                  train=True,
-                  models=[gcn, fc],
-                  optimizers=[optimizer_gcn, optimizer_fc],
-                  batch_generator=construct_gcn_batch(train_adj, train_feat,
-                                                      batch_size=args.batch_size),
-                  print_iter=0)
+        print_iter = run_epoch(epoch=epoch,
+                               args=args,
+                               all_adj_matrices=train_adj,
+                               train=True,
+                               models=[gcn, fc],
+                               optimizers=[optimizer_gcn, optimizer_fc],
+                               batch_generator=construct_gcn_batch(train_adj, train_feat,
+                                                                   batch_size=args.batch_size),
+                               print_iter=print_iter)
         torch.save(gcn.state_dict(), args.model_ckp_dir + "{}_{}_{}_gcn".format(args.writer_name,
                                                                                 args.writer_comment, epoch))
         torch.save(fc.state_dict(), args.model_ckp_dir + "{}_{}_{}_fc".format(args.writer_name,
-                                                                                args.writer_comment, epoch))
+                                                                              args.writer_comment, epoch))
         run_epoch(epoch=epoch,
                   args=args,
                   all_adj_matrices=val_adj,

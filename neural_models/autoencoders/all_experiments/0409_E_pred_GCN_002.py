@@ -28,8 +28,7 @@ experiment_setup = {"writer_name": args.EXP_DATE + "_" + args.EXP_NAME,
                     "report_metrics": ["loss", "acc"]}
 
 parameters = ["encoder_layer_dims"]
-values = [([256, 128],),
-          ([256, 256, 128],),
+values = [([256, 256, 128],),
           ([256,  256, 256, 128],)]
 
 for args in get_experiment_args(args, experiment_setup, parameters, values):
