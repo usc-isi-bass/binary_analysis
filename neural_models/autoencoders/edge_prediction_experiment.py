@@ -33,9 +33,6 @@ def run_epoch(epoch, args, train, models, batch_generator, optimizers, print_ite
                 model.zero_grad()
 
         adj, feat, edge_out_nodes, edge_in_nodes, nonedge_out_nodes, nonedge_in_nodes, y_for_nonedges = to_cuda(data)
-        if not args.use_large_graphs:
-            if adj.shape[0] > 15000:
-                continue
 
         adj = Variable(adj)
         feat = Variable(feat)
@@ -109,6 +106,16 @@ def main(args):
         val_adj = val_adj[:args.num_testing_examples]
         val_feat = val_feat[:args.num_testing_examples]
         val_labels = val_labels[:args.num_testing_examples]
+
+    if args.undirected_graphs:
+        undirected_train_adj = []
+        for t in train_adj:
+            undirected_train_adj.append(t + t.T)
+        train_adj = np.asarray(undirected_train_adj)
+        undirected_val_adj = []
+        for v in val_adj:
+            undirected_val_adj.append(v + v.T)
+        val_adj = np.asarray(undirected_val_adj)
 
     torch.cuda.set_device(args.cuda)
 

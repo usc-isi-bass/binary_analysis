@@ -29,10 +29,6 @@ class Args():
         #  Execute unit tests in the code
         self.run_tests = False
 
-        ### Whether to use or skip graphs that are too large
-        self.use_large_graphs = False
-        self.max_graph_size = 15000
-        
         ### Experiment context
         # Whether to use all predictions for all nodes to calculate the loss
         self.calculate_loss = 'on_all'
