@@ -6,12 +6,12 @@ import torch.nn.functional as F
 from torch import optim
 from torch.autograd import Variable
 from torch.utils.tensorboard import SummaryWriter
-from .utils import construct_gcn_batch
+from .utils import construct_gcn_batch_edge_prediction, to_cuda
 from .models.gcn import GCN
 from .models.fully_connected import FC
 
 
-def run_epoch(epoch, args, all_adj_matrices, train, models, batch_generator, optimizers, print_iter=0):
+def run_epoch(epoch, args, train, models, batch_generator, optimizers, print_iter=0):
     epoch_loss = []
     epoch_acc = []
 
@@ -23,9 +23,6 @@ def run_epoch(epoch, args, all_adj_matrices, train, models, batch_generator, opt
             model.eval()
     gcn, fc = models[0], models[1]
 
-    non_zero_xs = [A.nonzero()[0] for A in all_adj_matrices]
-    non_zero_ys = [A.nonzero()[1] for A in all_adj_matrices]
-
     if train:
         log_str = "Train"
     else:
@@ -35,55 +32,37 @@ def run_epoch(epoch, args, all_adj_matrices, train, models, batch_generator, opt
             for model in models:
                 model.zero_grad()
 
-        num_edges = 1000
-
-        adj, feat = data
+        adj, feat, edge_out_nodes, edge_in_nodes, nonedge_out_nodes, nonedge_in_nodes, y_for_nonedges = to_cuda(data)
         if not args.use_large_graphs:
             if adj.shape[0] > 15000:
                 continue
 
-        edge_idxs = np.random.randint(0, len(non_zero_xs[batch_idx]), num_edges)
-        n1_idxs = torch.LongTensor(non_zero_xs[batch_idx][edge_idxs]).cuda()
-        n2_idxs = torch.LongTensor(non_zero_ys[batch_idx][edge_idxs]).cuda()
-        masked_adj = adj.todense()
-        for i, j in zip(n1_idxs, n2_idxs):
-            masked_adj[i, j] = 0
+        adj = Variable(adj)
+        feat = Variable(feat)
+        gcn_out = gcn(feat, adj)
 
-        adj_v = Variable(torch.FloatTensor(masked_adj).cuda(), requires_grad=True)
-        feat_v = Variable(torch.FloatTensor(feat.todense()), requires_grad=True).cuda()
-        gcn_out = gcn(feat_v, adj_v)
-
-        gcn_n1 = torch.index_select(gcn_out, 0, n1_idxs)
-        gcn_n2 = torch.index_select(gcn_out, 0, n2_idxs)
-        gcn_repr_for_edges = torch.cat([gcn_n1, gcn_n2], dim=1)
+        gcn_out_nodes = torch.index_select(gcn_out, 0, edge_out_nodes)
+        gcn_in_nodes = torch.index_select(gcn_out, 0, edge_in_nodes)
+        gcn_repr_for_edges = torch.cat([gcn_out_nodes, gcn_in_nodes], dim=1)
         y_out_for_edges = fc(gcn_repr_for_edges)
 
-        a = np.zeros((num_edges, 2))
-        for ai in a:
-            ai[1] = 1
-        y_for_edges = torch.FloatTensor(a).cuda()
+        y_for_edges = torch.FloatTensor(np.hstack([np.zeros((args.num_edges, 1)),
+                                                   np.ones((args.num_edges, 1))])).cuda()
         loss = F.binary_cross_entropy_with_logits(y_out_for_edges, y_for_edges, reduce=None)
-        nonedge_idxs = np.random.randint(0, adj.shape[0], 2 * num_edges)
-        n3_idxs = torch.LongTensor(nonedge_idxs[:num_edges]).cuda()
-        n4_idxs = torch.LongTensor(nonedge_idxs[num_edges:]).cuda()
-        gcn_n3 = torch.index_select(gcn_out, 0, n3_idxs)
-        gcn_n4 = torch.index_select(gcn_out, 0, n4_idxs)
-        gcn_repr_for_nonedges = torch.cat([gcn_n3, gcn_n4], dim=1)
+
+        gcn_nonedge_out_nodes = torch.index_select(gcn_out, 0, nonedge_out_nodes)
+        gcn_nonedge_in_nodes = torch.index_select(gcn_out, 0, nonedge_in_nodes)
+        gcn_repr_for_nonedges = torch.cat([gcn_nonedge_out_nodes, gcn_nonedge_in_nodes], dim=1)
         y_out_for_nonedges = fc(gcn_repr_for_nonedges)
 
-        is_edge = np.asarray(all_adj_matrices[batch_idx].todense()[nonedge_idxs[:num_edges],
-                                                                   nonedge_idxs[num_edges:]]).reshape(-1)
-        b = np.zeros((num_edges, 2))
-        for bi, ie in zip(b, is_edge):
-            bi[ie] = 1
-        y_for_nonedges = torch.FloatTensor(b).cuda()
         loss += F.binary_cross_entropy_with_logits(y_out_for_nonedges, y_for_nonedges, reduce=None)
+
         if train:
             loss.backward()
 
         acc = (torch.argmax(y_for_edges, 1).eq(torch.argmax(y_out_for_edges, 1).long())).sum().data.item()
         acc += (torch.argmax(y_for_nonedges, 1).eq(torch.argmax(y_out_for_nonedges, 1)).long()).sum().data.item()
-        acc = acc / (2 * num_edges)
+        acc = acc / (y_out_for_edges.shape[0] + y_out_for_nonedges.shape[0])
 
         if train:
             for optimizer in optimizers:
@@ -136,8 +115,8 @@ def main(args):
     writer = SummaryWriter(args.logs_dir + args.writer_name + args.writer_comment)
     args.writer = writer
 
-    gcn = GCN(nfeat=train_feat[0].shape[1], layer_dims=args.encoder_layer_dims,
-              nout=args.encoder_nout, dropout=False, softmax=args.encoder_softmax, name="GCN").cuda()
+    gcn = GCN(nfeat=train_feat[0].shape[1], layer_dims=args.encoder_layer_dims, nout=args.encoder_nout,
+              dropout=False, softmax=args.encoder_softmax, name="GCN").cuda()
     optimizer_gcn = optim.Adam(list(gcn.parameters()), lr=args.lr)
     args.predictor_nfeat = 2 * args.encoder_nout
     fc = FC(nfeat=args.predictor_nfeat, layer_dims=args.predictor_layer_dims,
@@ -145,15 +124,24 @@ def main(args):
     optimizer_fc = optim.Adam(list(fc.parameters()), lr=args.lr)
 
     print_iter = 0
+
+    train_edge_out_nodes = [A.nonzero()[0] for A in train_adj]
+    train_edge_in_nodes = [A.nonzero()[1] for A in train_adj]
+    val_edge_out_nodes = [A.nonzero()[0] for A in val_adj]
+    val_edge_in_nodes = [A.nonzero()[1] for A in val_adj]
+
     for epoch in range(1, args.max_epochs + 1):
         print_iter = run_epoch(epoch=epoch,
                                args=args,
-                               all_adj_matrices=train_adj,
                                train=True,
                                models=[gcn, fc],
                                optimizers=[optimizer_gcn, optimizer_fc],
-                               batch_generator=construct_gcn_batch(train_adj, train_feat,
-                                                                   batch_size=args.batch_size),
+                               batch_generator=construct_gcn_batch_edge_prediction(adj=train_adj,
+                                                                                   features=train_feat,
+                                                                                   args=args,
+                                                                                   edge_out_nodes=train_edge_out_nodes,
+                                                                                   edge_in_nodes=train_edge_in_nodes,
+                                                                                   batch_size=args.batch_size),
                                print_iter=print_iter)
 
         if epoch % args.epochs_save == 0:
@@ -164,12 +152,15 @@ def main(args):
         if epoch >= args.epochs_test_start and epoch % args.epochs_test == 0:
             run_epoch(epoch=epoch,
                       args=args,
-                      all_adj_matrices=val_adj,
                       train=False,
                       models=[gcn, fc],
                       optimizers=[optimizer_gcn, optimizer_fc],
-                      batch_generator=construct_gcn_batch(val_adj, val_feat,
-                                                          batch_size=args.batch_size))
+                      batch_generator=construct_gcn_batch_edge_prediction(adj=val_adj,
+                                                                          features=val_feat,
+                                                                          args=args,
+                                                                          edge_out_nodes=val_edge_out_nodes,
+                                                                          edge_in_nodes=val_edge_in_nodes,
+                                                                          batch_size=args.batch_size))
 
 
 if __name__ == '__main__':

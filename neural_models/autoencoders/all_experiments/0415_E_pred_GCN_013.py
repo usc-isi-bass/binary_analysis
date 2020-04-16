@@ -28,7 +28,7 @@ experiment_setup = {"writer_name": args.EXP_DATE + "_" + args.EXP_NAME,
                     "print_every": 100,
                     "max_epochs": 30,
                     "report_metrics": ["loss", "acc"]}
-1
+
 parameters = [
     "encoder_layer_dims", "encoder_nout"]
 values = [

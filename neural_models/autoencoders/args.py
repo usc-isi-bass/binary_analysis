@@ -26,7 +26,9 @@ class Args():
 
         ### Whether to test on test or validation set
         self.use_test_set = False
-                
+        #  Execute unit tests in the code
+        self.run_tests = False
+
         ### Whether to use or skip graphs that are too large
         self.use_large_graphs = False
         self.max_graph_size = 15000
@@ -41,9 +43,10 @@ class Args():
         self.encoder_layer_dims = [512, 256, 256]
         self.encoder_nout = 128
         self.encoder_softmax = True
-        
+
+        ## FC
         self.predictor_nfeat = 256
-        self.predictor_layer_dims = [] 
+        self.predictor_layer_dims = [32]
         self.predictor_nout = 2
         
         ### training config
@@ -66,3 +69,9 @@ class Args():
 
         self.logs_dir = "neural_models/autoencoders/runs/"
         self.model_ckp_dir = "neural_models/autoencoders/model_checkpoints/"
+
+        ### Experiment parameters
+        # Edge prediction
+        self.num_edges = 1000
+        self.edge_masking_value = 0
+
