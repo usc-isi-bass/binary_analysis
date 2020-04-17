@@ -46,14 +46,14 @@ class Args():
         self.predictor_nout = 2
         
         ### training config
-        self.max_epochs = 5
-        self.batch_size = 1
+        self.max_epochs = 30
+        self.batch_size = 16
         self.epochs_test_start = 5
-        self.epochs_test = 1
+        self.epochs_test = 2
         self.batches_log = 500
         self.epochs_log = 1
         self.epochs_save = 5
-        self.lr = 0.0001
+        self.lr = 1e-3
         # self.milestones = [400, 1000]
         # self.lr_rate = 0.99
 
@@ -70,4 +70,5 @@ class Args():
         # Edge prediction
         self.num_edges = 1000
         self.edge_masking_value = 0
+        self.undirected_graphs = False
 

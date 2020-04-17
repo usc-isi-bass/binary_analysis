@@ -32,7 +32,8 @@ def run_epoch(epoch, args, train, models, batch_generator, optimizers, print_ite
             for model in models:
                 model.zero_grad()
 
-        adj, feat, edge_out_nodes, edge_in_nodes, nonedge_out_nodes, nonedge_in_nodes, y_for_nonedges = to_cuda(data)
+        adj, feat, edge_out_nodes, edge_in_nodes, \
+        nonedge_out_nodes, nonedge_in_nodes, y_for_edges, y_for_nonedges = to_cuda(data)
 
         adj = Variable(adj)
         feat = Variable(feat)
@@ -43,16 +44,14 @@ def run_epoch(epoch, args, train, models, batch_generator, optimizers, print_ite
         gcn_repr_for_edges = torch.cat([gcn_out_nodes, gcn_in_nodes], dim=1)
         y_out_for_edges = fc(gcn_repr_for_edges)
 
-        y_for_edges = torch.FloatTensor(np.hstack([np.zeros((args.num_edges, 1)),
-                                                   np.ones((args.num_edges, 1))])).cuda()
-        loss = F.binary_cross_entropy_with_logits(y_out_for_edges, y_for_edges, reduce=None)
+        loss = F.binary_cross_entropy_with_logits(y_out_for_edges, y_for_edges)
 
         gcn_nonedge_out_nodes = torch.index_select(gcn_out, 0, nonedge_out_nodes)
         gcn_nonedge_in_nodes = torch.index_select(gcn_out, 0, nonedge_in_nodes)
         gcn_repr_for_nonedges = torch.cat([gcn_nonedge_out_nodes, gcn_nonedge_in_nodes], dim=1)
         y_out_for_nonedges = fc(gcn_repr_for_nonedges)
 
-        loss += F.binary_cross_entropy_with_logits(y_out_for_nonedges, y_for_nonedges, reduce=None)
+        loss += F.binary_cross_entropy_with_logits(y_out_for_nonedges, y_for_nonedges)
 
         if train:
             loss.backward()

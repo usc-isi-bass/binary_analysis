@@ -29,9 +29,13 @@ def construct_gcn_batch_edge_prediction(adj, features, edge_out_nodes, edge_in_n
         assert len(edge_out_nodes) == len(edge_in_nodes)
     for i in range(G // batch_size + int(G % batch_size != 0)):
         # sample edges
+        current_batch_size = len(adj[batch_size * i: batch_size * (i + 1)])
         batch_out_nodes = np.hstack(edge_out_nodes[batch_size * i: batch_size * (i + 1)])
         batch_in_nodes = np.hstack(edge_in_nodes[batch_size * i: batch_size * (i + 1)])
-        edge_idxs = np.random.randint(0, len(batch_out_nodes), args.num_edges)
+        # sample args.num_edges from each graph
+        edge_idxs = np.random.randint(0, len(batch_out_nodes), current_batch_size * args.num_edges)
+        labels_for_edges = np.hstack([np.zeros((current_batch_size * args.num_edges, 1)),
+                                 np.ones((current_batch_size * args.num_edges, 1))])
         batch_out_nodes = batch_out_nodes[edge_idxs]
         batch_in_nodes = batch_in_nodes[edge_idxs]
 
@@ -60,10 +64,10 @@ def construct_gcn_batch_edge_prediction(adj, features, edge_out_nodes, edge_in_n
 
         batch_nonedge_in_node = np.hstack(batch_nonedge_in_node)
         batch_nonedge_out_node = np.hstack(batch_nonedge_out_node)
-        is_edge = np.asarray(batch_adj[batch_nonedge_out_node, batch_nonedge_in_node]).ravel()
+        labels_for_nonedges = np.asarray(batch_adj[batch_nonedge_out_node, batch_nonedge_in_node]).ravel()
 
         if args.run_tests:
-            test_is_edge(batch_adj, batch_nonedge_out_node, batch_nonedge_in_node, is_edge)
+            test_is_edge(batch_adj, batch_nonedge_out_node, batch_nonedge_in_node, labels_for_nonedges)
 
         # wrap in tensors
         batch_adj = torch.sparse.FloatTensor(*csr_to_torch_sparse(batch_adj))
@@ -72,10 +76,11 @@ def construct_gcn_batch_edge_prediction(adj, features, edge_out_nodes, edge_in_n
         batch_in_nodes = torch.LongTensor(batch_in_nodes)
         batch_nonedge_in_node = torch.LongTensor(batch_nonedge_in_node)
         batch_nonedge_out_node = torch.LongTensor(batch_nonedge_out_node)
-        is_edge = torch.FloatTensor(to_one_hot(is_edge, 2))
+        labels_for_edges = torch.FloatTensor(labels_for_edges)
+        labels_for_nonedges = torch.FloatTensor(to_one_hot(labels_for_nonedges, 2))
 
         yield (batch_adj, batch_features, batch_out_nodes, batch_in_nodes,
-               batch_nonedge_out_node, batch_nonedge_in_node, is_edge)
+               batch_nonedge_out_node, batch_nonedge_in_node, labels_for_edges, labels_for_nonedges)
     return
 
 
