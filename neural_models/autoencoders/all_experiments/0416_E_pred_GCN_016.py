@@ -13,7 +13,7 @@ args = Args()
 
 ### CHECK THAT THIS IS A CLEAN REPOSITORY ###
 
-args.EXP_NAME = "E_pred_GCN_014"
+args.EXP_NAME = "E_pred_GCN_016"
 args.EXP_DATE = "0415"
 
 # different_setups

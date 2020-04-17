@@ -11,7 +11,7 @@ args.EXP_DATE = "0416"
 
 # different_setups
 experiment_setup = {"writer_name": args.EXP_DATE + "_" + args.EXP_NAME,
-                    "writer_comment": None,
+                    "writer_comment": "01",
                     "encoder_nout": 32,
                     "encoder_layer_dims": [32, 32, 32, 32, 32],
                     "undirected_graphs": None,
