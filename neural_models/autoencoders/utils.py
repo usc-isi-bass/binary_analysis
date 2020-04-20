@@ -7,7 +7,7 @@ from torch.autograd import Variable
 from .test import test_masking, test_is_edge
 
 
-def csr_to_torch_sparse(a):
+def scipy_to_torch_sparse(a):
     coo_a = a.tocoo()
     data = torch.FloatTensor(coo_a.data)
     idx = torch.LongTensor([coo_a.row, coo_a.col])
@@ -28,19 +28,25 @@ def construct_gcn_batch_edge_prediction(adj, features, edge_out_nodes, edge_in_n
     if args.run_tests:
         assert len(edge_out_nodes) == len(edge_in_nodes)
     for i in range(G // batch_size + int(G % batch_size != 0)):
+        # construct adj matrix
+        batch_adj = sp.dok_matrix(sp.block_diag(list(adj[batch_size * i: batch_size * (i + 1)])))
         # sample edges
         current_batch_size = len(adj[batch_size * i: batch_size * (i + 1)])
-        batch_out_nodes = np.hstack(edge_out_nodes[batch_size * i: batch_size * (i + 1)])
-        batch_in_nodes = np.hstack(edge_in_nodes[batch_size * i: batch_size * (i + 1)])
-        # sample args.num_edges from each graph
-        edge_idxs = np.random.randint(0, len(batch_out_nodes), current_batch_size * args.num_edges)
-        labels_for_edges = np.hstack([np.zeros((current_batch_size * args.num_edges, 1)),
-                                 np.ones((current_batch_size * args.num_edges, 1))])
-        batch_out_nodes = batch_out_nodes[edge_idxs]
-        batch_in_nodes = batch_in_nodes[edge_idxs]
+        batch_out_nodes = edge_out_nodes[batch_size * i: batch_size * (i + 1)]
+        batch_in_nodes = edge_in_nodes[batch_size * i: batch_size * (i + 1)]
+        offset = 0
+        for k in range(current_batch_size):
+            # sample args.num_edges from each graph
+            edge_idxs = np.random.randint(0, len(batch_out_nodes[k]), args.num_edges)
+            batch_out_nodes[k] = np.add(batch_out_nodes[k][edge_idxs], offset)
+            batch_in_nodes[k] = np.add(batch_in_nodes[k][edge_idxs], offset)
+            offset += adj[batch_size * i: batch_size * (i + 1)][k].shape[0]
+        batch_in_nodes = np.hstack(batch_in_nodes)
+        batch_out_nodes = np.hstack(batch_out_nodes)
+        labels_for_edges = np.ones(current_batch_size * args.num_edges, dtype=int)
 
-        # construct adj matrix
-        batch_adj = sp.csr_matrix(sp.block_diag(list(adj[batch_size * i: batch_size * (i + 1)])))
+        if args.run_tests:
+            test_is_edge(batch_adj, batch_out_nodes, batch_in_nodes, labels_for_edges)
         # mask selected edges from adj matrix
         for j, k in zip(batch_out_nodes, batch_in_nodes):
             batch_adj[j, k] = args.edge_masking_value
@@ -64,19 +70,19 @@ def construct_gcn_batch_edge_prediction(adj, features, edge_out_nodes, edge_in_n
 
         batch_nonedge_in_node = np.hstack(batch_nonedge_in_node)
         batch_nonedge_out_node = np.hstack(batch_nonedge_out_node)
-        labels_for_nonedges = np.asarray(batch_adj[batch_nonedge_out_node, batch_nonedge_in_node]).ravel()
+        labels_for_nonedges = np.asarray(batch_adj[batch_nonedge_out_node, batch_nonedge_in_node].todense()).ravel()
 
         if args.run_tests:
             test_is_edge(batch_adj, batch_nonedge_out_node, batch_nonedge_in_node, labels_for_nonedges)
 
         # wrap in tensors
-        batch_adj = torch.sparse.FloatTensor(*csr_to_torch_sparse(batch_adj))
+        batch_adj = torch.sparse.FloatTensor(*scipy_to_torch_sparse(batch_adj))
         batch_features = torch.FloatTensor(batch_features.todense())
         batch_out_nodes = torch.LongTensor(batch_out_nodes)
         batch_in_nodes = torch.LongTensor(batch_in_nodes)
         batch_nonedge_in_node = torch.LongTensor(batch_nonedge_in_node)
         batch_nonedge_out_node = torch.LongTensor(batch_nonedge_out_node)
-        labels_for_edges = torch.FloatTensor(labels_for_edges)
+        labels_for_edges = torch.FloatTensor(to_one_hot(labels_for_edges, 2))
         labels_for_nonedges = torch.FloatTensor(to_one_hot(labels_for_nonedges, 2))
 
         yield (batch_adj, batch_features, batch_out_nodes, batch_in_nodes,
@@ -129,6 +135,14 @@ def numpy_to_one_hot(y, n_dims=None):
         n_dims = np.max(y) + 1
     return np.eye(n_dims)[y]
 
+
+def shuffle_data(data):
+    shuffled_iter = np.arange(len(data[0]))
+    np.random.shuffle(shuffled_iter)
+    shuffled_data = []
+    for d in data:
+        shuffled_data.append(d[shuffled_iter])
+    return shuffled_data
 
 def to_cuda(args):
     cuda_args = []

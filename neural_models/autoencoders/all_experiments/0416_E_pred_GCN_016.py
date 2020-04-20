@@ -1,10 +1,3 @@
-import sys
-import os
-#
-# BINREC_PATH = os.getenv('BINREC_PATH')
-# sys.path.append('{BINREC_PATH}/neural_models/autoencoders')
-# sys.path.append('{BINREC_PATH}/neural_models/autoencoders/models')
-
 from ..args import Args
 from ..experiment_template import get_experiment_args
 from ..edge_prediction_experiment import main
@@ -26,8 +19,8 @@ experiment_setup = {"writer_name": args.EXP_DATE + "_" + args.EXP_NAME,
                     "predictor_nout": 2,
                     "batch_size": 16,
                     "lr": 1e-3,
-                    "epochs_save": 5,
-                    "epochs_test": 2,
+                    "epochs_save": 1,
+                    "epochs_test": 1,
                     "max_epochs": 30,
                     "report_metrics": ["loss", "acc"],
                     "sparse": True}

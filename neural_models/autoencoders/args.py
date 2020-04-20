@@ -54,6 +54,8 @@ class Args():
         self.epochs_log = 1
         self.epochs_save = 5
         self.lr = 1e-3
+        self.report_metrics = ["loss", "acc"]
+        self.shuffle_after_epoch = False
         # self.milestones = [400, 1000]
         # self.lr_rate = 0.99
 
@@ -71,4 +73,5 @@ class Args():
         self.num_edges = 1000
         self.edge_masking_value = 0
         self.undirected_graphs = False
+        self.encoder = None
 

@@ -1,10 +1,3 @@
-import sys
-import os
-#
-# BINREC_PATH = os.getenv('BINREC_PATH')
-# sys.path.append('{BINREC_PATH}/neural_models/autoencoders')
-# sys.path.append('{BINREC_PATH}/neural_models/autoencoders/models')
-
 from ..args import Args
 from ..experiment_template import get_experiment_args
 from ..edge_prediction_experiment import main

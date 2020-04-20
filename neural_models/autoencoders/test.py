@@ -9,4 +9,5 @@ def test_is_edge(adj, out_nodes, in_nodes, is_edge):
     adj = adj.todense()
     for k, p, j in zip(out_nodes, in_nodes, is_edge):
         if adj[k, p] != j:
-            return False, "is edege is not calculated correctly"
+            return False, "is is_edge is not calculated correctly"
+
