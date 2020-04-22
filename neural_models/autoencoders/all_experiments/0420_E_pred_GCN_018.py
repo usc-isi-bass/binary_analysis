@@ -14,7 +14,7 @@ experiment_setup = {"writer_name": args.EXP_DATE + "_" + args.EXP_NAME,
                     "writer_comment": None,
 
                     "batches_log": 100,
-                    "batch_size": 16,
+                    "batch_size": 8,
                     "encoder_layer_dims": [32, 32, 32, 32, 32],
                     "encoder_nout": 32,
                     "epochs_save": 1,

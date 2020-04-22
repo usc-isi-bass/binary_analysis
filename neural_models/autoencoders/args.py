@@ -67,6 +67,7 @@ class Args():
 
         self.logs_dir = "neural_models/autoencoders/runs/"
         self.model_ckp_dir = "neural_models/autoencoders/model_checkpoints/"
+        self.allow_load_pretrained_model = False
 
         ### Experiment parameters
         # Edge prediction

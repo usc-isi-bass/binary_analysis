@@ -13,8 +13,9 @@ args.EXP_DATE = "0417"
 experiment_setup = {"writer_name": args.EXP_DATE + "_" + args.EXP_NAME,
                     "writer_comment": None,
 
+                    "allow_load_pretrained_model": True,
                     "batches_log": 100,
-                    "batch_size": 16,
+                    "batch_size": 8,
                     "epochs_save": 1,
                     "epochs_test": 1,
                     "epochs_test_start": 1,

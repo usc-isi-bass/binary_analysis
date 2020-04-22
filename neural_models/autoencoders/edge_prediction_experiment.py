@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch import optim
 from torch.autograd import Variable
 from torch.utils.tensorboard import SummaryWriter
-from .utils import construct_gcn_batch_edge_prediction, to_cuda, shuffle_data
+from .utils import construct_gcn_batch_edge_prediction, to_cuda, shuffle_data, load_pretrained_model
 from .models.gcn import GCN
 from .models.fully_connected import FC
 
@@ -94,9 +94,9 @@ def run_epoch(epoch, args, train, models, batch_generator, optimizers, print_ite
 
         if train and batch_idx % args.batches_log == 0:
             if "loss" in args.report_metrics:
-                args.writer.add_scalar(log_str + " loss", np.mean(epoch_loss), print_iter)
+                args.writer.add_scalar(log_str + " loss", np.mean(epoch_loss[-10:]), print_iter)
             if "acc" in args.report_metrics:
-                args.writer.add_scalar(log_str + " acc", np.mean(epoch_acc), print_iter)
+                args.writer.add_scalar(log_str + " acc", np.mean(epoch_acc[-10:]), print_iter)
             print_iter += 1
 
     epoch_loss = np.mean(epoch_loss)
@@ -148,9 +148,12 @@ def main(args):
 
     models = []
     optimizers = []
+    starting_epoch = 1
     if not (args.encoder == "no_encoder"):
         gcn = GCN(nfeat=train_feat[0].shape[1], layer_dims=args.encoder_layer_dims, nout=args.encoder_nout,
                   dropout=False, softmax=args.encoder_softmax, name="GCN").cuda()
+        if args.allow_load_pretrained_model:
+            last_epoch_gcn = load_pretrained_model(args, gcn, pattern="{}_{}_{}_gcn")
         models.append(gcn)
         optimizer_gcn = optim.Adam(list(gcn.parameters()), lr=args.lr)
         optimizers.append(optimizer_gcn)
@@ -159,6 +162,10 @@ def main(args):
     args.predictor_nfeat = 2 * args.encoder_nout
     fc = FC(nfeat=args.predictor_nfeat, layer_dims=args.predictor_layer_dims,
             nout=args.predictor_nout, name="FC").cuda()
+    if args.allow_load_pretrained_model:
+        last_epoch_fc = load_pretrained_model(args, fc, pattern="{}_{}_{}_fc")
+        assert last_epoch_gcn == last_epoch_fc
+        starting_epoch = last_epoch_fc + 1
     optimizer_fc = optim.Adam(list(fc.parameters()), lr=args.lr)
 
     models.append(fc)
@@ -171,7 +178,7 @@ def main(args):
     val_edge_out_nodes = [A.nonzero()[0] for A in val_adj]
     val_edge_in_nodes = [A.nonzero()[1] for A in val_adj]
 
-    for epoch in range(1, args.max_epochs + 1):
+    for epoch in range(starting_epoch, args.max_epochs + 1):
         print_iter = run_epoch(epoch=epoch,
                                args=args,
                                train=True,

@@ -6,29 +6,26 @@ args = Args()
 
 ### CHECK THAT THIS IS A CLEAN REPOSITORY ###
 
-args.EXP_NAME = "E_pred_MLP_005"
-args.EXP_DATE = "0417"
+args.EXP_NAME = "E_pred_MLP_007"
+args.EXP_DATE = "0422"
 
 # different_setups
 experiment_setup = {"writer_name": args.EXP_DATE + "_" + args.EXP_NAME,
                     "writer_comment": None,
 
-                    "allow_load_pretrained_model": True,
                     "batches_log": 100,
-                    "batch_size": 8,
+                    "batch_size": 16,
+                    "encoder": "no_encoder",
                     "epochs_save": 1,
                     "epochs_test": 1,
                     "epochs_test_start": 1,
+                    "max_epochs": 4,
                     "predictor_layer_dims": [5000, 1000, 500, 100],
 
-                    "undirected_graphs": None,
-                    "encoder": None}
+                    "num_edges": None}
 
-parameters = [
-    "encoder", "undirected_graphs"]
-values = [
-    ("no_encoder", True)
-          ]
+parameters = ["num_edges"]
+values = [(100, ), (500, ), (1000, ), (3000,)]
 
 
 for args in get_experiment_args(args, experiment_setup, parameters, values):

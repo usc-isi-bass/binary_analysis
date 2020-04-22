@@ -1,3 +1,4 @@
+import glob
 import numpy as np
 import scipy.sparse as sp
 import torch
@@ -144,6 +145,7 @@ def shuffle_data(data):
         shuffled_data.append(d[shuffled_iter])
     return shuffled_data
 
+
 def to_cuda(args):
     cuda_args = []
     for arg in args:
@@ -152,3 +154,17 @@ def to_cuda(args):
         else:
             cuda_args.append(arg)
     return cuda_args
+
+
+def load_pretrained_model(args, model, pattern):
+    model_ckp_files = glob.glob(args.model_ckp_dir + pattern.format(args.writer_name,
+                                                                    args.writer_comment, "*"))
+
+    def get_epoch(ckp_file):
+        return int(ckp_file.split("_")[-2])
+
+    epochs = [get_epoch(mcf) for mcf in model_ckp_files]
+    last_epoch = np.argmax(epochs)
+    model.load_state_dict(torch.load(args.model_ckp_dir + pattern.format(args.writer_name,
+                                                                         args.writer_comment, epochs[last_epoch])))
+    return epochs[last_epoch]
