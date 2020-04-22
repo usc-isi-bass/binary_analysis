@@ -115,11 +115,11 @@ def main(args):
     with open(DATA_PATH + '/updated_graphs/fold_0/{}_gcn_on_oj_train.pkl'.format(args.data), 'rb') as f:
         train = pkl.load(f)
     if args.use_test_set:
-        with open(DATA_PATH + '/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_test.pkl'.format(args.data), 'rb') as f:
+        with open(DATA_PATH + '/updated_graphs/fold_0/{}_gcn_on_oj_test.pkl'.format(args.data), 'rb') as f:
             test = pkl.load(f)
         val_adj, val_feat, val_labels = test
     else:
-        with open(DATA_PATH + '/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_val.pkl'.format(args.data), 'rb') as f:
+        with open(DATA_PATH + '/updated_graphs/fold_0/{}_gcn_on_oj_val.pkl'.format(args.data), 'rb') as f:
             val = pkl.load(f)
         val_adj, val_feat, val_labels = val
 
