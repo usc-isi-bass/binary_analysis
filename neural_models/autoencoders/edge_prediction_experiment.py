@@ -1,6 +1,7 @@
 import pickle as pkl
 
 import numpy as np
+import os
 import torch
 import torch.nn.functional as F
 import scipy.sparse as sp
@@ -10,6 +11,8 @@ from torch.utils.tensorboard import SummaryWriter
 from .utils import construct_gcn_batch_edge_prediction, to_cuda, shuffle_data, load_pretrained_model
 from .models.gcn import GCN
 from .models.fully_connected import FC
+
+DATA_PATH = os.getenv("DATA_PATH")
 
 
 def get_gcn_and_fc_out(data, models):
@@ -109,14 +112,14 @@ def run_epoch(epoch, args, train, models, batch_generator, optimizers, print_ite
 
 
 def main(args):
-    with open('/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_train.pkl'.format(args.data), 'rb') as f:
+    with open(DATA_PATH + '/updated_graphs/fold_0/{}_gcn_on_oj_train.pkl'.format(args.data), 'rb') as f:
         train = pkl.load(f)
     if args.use_test_set:
-        with open('/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_test.pkl'.format(args.data), 'rb') as f:
+        with open(DATA_PATH + '/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_test.pkl'.format(args.data), 'rb') as f:
             test = pkl.load(f)
         val_adj, val_feat, val_labels = test
     else:
-        with open('/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_val.pkl'.format(args.data), 'rb') as f:
+        with open(DATA_PATH + '/nas/home/shushan/updated_graphs/fold_0/{}_gcn_on_oj_val.pkl'.format(args.data), 'rb') as f:
             val = pkl.load(f)
         val_adj, val_feat, val_labels = val
 
