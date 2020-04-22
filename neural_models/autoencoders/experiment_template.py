@@ -46,8 +46,9 @@ def get_experiment_args(args, experiment_setup, parameters, values):
         err_file = "{path}/{date}_{name}_{suff}_err.txt".format(
             path=experiment_outs, date=args.EXP_DATE,
             name=args.EXP_NAME, suff=args.writer_comment)
-        print("Redirecting out to {out_file} and err to {err_file}".format(out_file=out_file, err_file=err_file))
-        sys.stdout = open(out_file, 'w', buffering=1)
-        sys.stderr = open(err_file, 'w', buffering=1)
-        print("Starting experiment {}_{}".format(args.EXP_DATE, args.EXP_NAME))
+        if not args.debug:
+            print("Redirecting out to {out_file} and err to {err_file}".format(out_file=out_file, err_file=err_file))
+            sys.stdout = open(out_file, 'w', buffering=1)
+            sys.stderr = open(err_file, 'w', buffering=1)
+            print("Starting experiment {}_{}".format(args.EXP_DATE, args.EXP_NAME))
         yield args

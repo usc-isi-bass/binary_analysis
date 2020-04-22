@@ -64,6 +64,7 @@ class Args():
         self.num_training_examples = None
         self.use_entire_testing_set = True
         self.num_testing_examples = None
+        self.debug = False
 
         self.logs_dir = "neural_models/autoencoders/runs/"
         self.model_ckp_dir = "neural_models/autoencoders/model_checkpoints/"
@@ -75,6 +76,11 @@ class Args():
         self.edge_masking_value = 0
         self.undirected_graphs = False
         self.encoder = None
+        self.sample_subgraphs = False
+        self.mask_size = 5
+        self.all_edges = False
+        self.use_dummy_writer = False
+        self.use_roc_auc_writer = False
 
-        self.add_self_loops = True
+        self.add_self_loops = False
 

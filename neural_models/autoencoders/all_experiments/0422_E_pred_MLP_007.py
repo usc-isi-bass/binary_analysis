@@ -11,10 +11,9 @@ args.EXP_DATE = "0422"
 
 # different_setups
 experiment_setup = {"writer_name": args.EXP_DATE + "_" + args.EXP_NAME,
-                    "writer_comment": None,
+                    "writer_comment": "02",
 
                     "batches_log": 100,
-                    "batch_size": 16,
                     "encoder": "no_encoder",
                     "epochs_save": 1,
                     "epochs_test": 1,
@@ -22,10 +21,13 @@ experiment_setup = {"writer_name": args.EXP_DATE + "_" + args.EXP_NAME,
                     "max_epochs": 4,
                     "predictor_layer_dims": [5000, 1000, 500, 100],
 
+                    "batch_size": None,
                     "num_edges": None}
 
-parameters = ["num_edges"]
-values = [(100, ), (500, ), (1000, ), (3000,)]
+parameters = ["num_edges", "batch_size"]
+values = [
+    # (100, 16), (500, 8), (1000,8),
+    (3000, 4)]
 
 
 for args in get_experiment_args(args, experiment_setup, parameters, values):

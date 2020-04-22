@@ -4,7 +4,7 @@ import numpy as np
 import os
 import torch
 import torch.nn.functional as F
-import scipy.sparse as sp
+from sklearn.metrics import roc_auc_score
 from torch import optim
 from torch.autograd import Variable
 from torch.utils.tensorboard import SummaryWriter
@@ -31,7 +31,7 @@ def get_gcn_and_fc_out(data, models):
     gcn_nonedge_in_nodes = torch.index_select(gcn_out, 0, nonedge_in_nodes)
     gcn_repr_for_nonedges = torch.cat([gcn_nonedge_out_nodes, gcn_nonedge_in_nodes], dim=1)
     y_out_for_nonedges = fc(gcn_repr_for_nonedges)
-    return y_out_for_edges, y_out_for_nonedges
+    return y_out_for_edges, y_out_for_nonedges, y_for_edges, y_for_nonedges
 
 
 def get_fc_out(data, models):
@@ -48,12 +48,14 @@ def get_fc_out(data, models):
     nonedge_out_nodes_feat = torch.index_select(feat, 0, nonedge_out_nodes)
     nonedge_feat = torch.cat([nonedge_out_nodes_feat, nonedge_in_nodes_feat], dim=1)
     y_out_for_nonedges = fc(nonedge_feat)
-    return y_out_for_edges, y_out_for_nonedges
+    return y_out_for_edges, y_out_for_nonedges, y_for_edges, y_for_nonedges
 
 
 def run_epoch(epoch, args, train, models, batch_generator, optimizers, print_iter=0):
     epoch_loss = []
     epoch_acc = []
+    dummy_accuracy = []
+    roc_aucs = []
 
     if train:
         for model in models:
@@ -101,6 +103,10 @@ def run_epoch(epoch, args, train, models, batch_generator, optimizers, print_ite
                 args.writer.add_scalar(log_str + " loss", np.mean(epoch_loss[-10:]), print_iter)
             if "acc" in args.report_metrics:
                 args.writer.add_scalar(log_str + " acc", np.mean(epoch_acc[-10:]), print_iter)
+            if args.use_dummy_writer:
+                args.dummy_writer.add_scalar(log_str + " acc", np.mean(dummy_accuracy[-10:]), print_iter)
+            if args.use_roc_auc_writer:
+                args.roc_auc_writer.add_scalar(log_str + " acc", np.mean(roc_aucs[-10:]), print_iter)
             print_iter += 1
 
     epoch_loss = np.mean(epoch_loss)
@@ -114,6 +120,7 @@ def run_epoch(epoch, args, train, models, batch_generator, optimizers, print_ite
 def main(args):
     with open(DATA_PATH + '/updated_graphs/fold_0/{}_gcn_on_oj_train.pkl'.format(args.data), 'rb') as f:
         train = pkl.load(f)
+        train_adj, train_feat, train_labels = train
     if args.use_test_set:
         with open(DATA_PATH + '/updated_graphs/fold_0/{}_gcn_on_oj_test.pkl'.format(args.data), 'rb') as f:
             test = pkl.load(f)
@@ -122,8 +129,6 @@ def main(args):
         with open(DATA_PATH + '/updated_graphs/fold_0/{}_gcn_on_oj_val.pkl'.format(args.data), 'rb') as f:
             val = pkl.load(f)
         val_adj, val_feat, val_labels = val
-
-    train_adj, train_feat, train_labels = train
 
     if args.add_self_loops:
         train_adj = [sp.csr_matrix(a.todense() + np.eye(a.shape[0])) for a in train_adj]
@@ -150,9 +155,11 @@ def main(args):
         val_adj = np.asarray(undirected_val_adj)
 
     torch.cuda.set_device(args.cuda)
-
-    writer = SummaryWriter(args.logs_dir + args.writer_name + args.writer_comment)
-    args.writer = writer
+    args.writer = SummaryWriter(args.logs_dir + args.writer_name + args.writer_comment)
+    if args.use_dummy_writer:
+        args.dummy_writer = SummaryWriter(args.logs_dir + args.writer_name + args.writer_comment + "_dummy")
+    if args.use_roc_auc_writer:
+        args.roc_auc_writer = SummaryWriter(args.logs_dir + args.writer_name + args.writer_comment + "_roc_auc")
 
     models = []
     optimizers = []
@@ -187,17 +194,23 @@ def main(args):
     val_edge_in_nodes = [A.nonzero()[1] for A in val_adj]
 
     for epoch in range(starting_epoch, args.max_epochs + 1):
+        if args.sample_subgraphs:
+            batch_generator = construct_gcn_batch_mask_subgraph_edges_all(adj=train_adj, features=train_feat,
+                                                                          args=args,
+                                                                          mask_size=args.mask_size)
+        else:
+            batch_generator = construct_gcn_batch_edge_prediction(adj=train_adj,
+                                                                  features=train_feat,
+                                                                  args=args,
+                                                                  edge_out_nodes=train_edge_out_nodes,
+                                                                  edge_in_nodes=train_edge_in_nodes,
+                                                                  batch_size=args.batch_size)
         print_iter = run_epoch(epoch=epoch,
                                args=args,
                                train=True,
                                models=models,
                                optimizers=optimizers,
-                               batch_generator=construct_gcn_batch_edge_prediction(adj=train_adj,
-                                                                                   features=train_feat,
-                                                                                   args=args,
-                                                                                   edge_out_nodes=train_edge_out_nodes,
-                                                                                   edge_in_nodes=train_edge_in_nodes,
-                                                                                   batch_size=args.batch_size),
+                               batch_generator=batch_generator,
                                print_iter=print_iter)
         if args.shuffle_after_epoch:
             train_adj, train_feat, train_labels = shuffle_data([train_adj, train_feat, train_labels])
@@ -209,17 +222,23 @@ def main(args):
             torch.save(fc.state_dict(), args.model_ckp_dir + "{}_{}_{}_fc".format(args.writer_name,
                                                                                   args.writer_comment, epoch))
         if epoch >= args.epochs_test_start and epoch % args.epochs_test == 0:
+            if args.sample_subgraphs:
+                batch_generator = construct_gcn_batch_mask_subgraph_edges_all(adj=val_adj, features=val_feat,
+                                                                              args=args,
+                                                                              mask_size=args.mask_size)
+            else:
+                batch_generator = construct_gcn_batch_edge_prediction(adj=val_adj,
+                                                                      features=val_feat,
+                                                                      args=args,
+                                                                      edge_out_nodes=val_edge_out_nodes,
+                                                                      edge_in_nodes=val_edge_in_nodes,
+                                                                      batch_size=args.batch_size)
             run_epoch(epoch=epoch,
                       args=args,
                       train=False,
                       models=models,
                       optimizers=optimizers,
-                      batch_generator=construct_gcn_batch_edge_prediction(adj=val_adj,
-                                                                          features=val_feat,
-                                                                          args=args,
-                                                                          edge_out_nodes=val_edge_out_nodes,
-                                                                          edge_in_nodes=val_edge_in_nodes,
-                                                                          batch_size=args.batch_size))
+                      batch_generator=batch_generator)
             if args.shuffle_after_epoch:
                 val_adj, val_feat, val_labels = shuffle_data([val_adj, val_feat, val_labels])
 
