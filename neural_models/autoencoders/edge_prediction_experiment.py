@@ -3,6 +3,7 @@ import pickle as pkl
 import numpy as np
 import torch
 import torch.nn.functional as F
+import scipy.sparse as sp
 from torch import optim
 from torch.autograd import Variable
 from torch.utils.tensorboard import SummaryWriter
@@ -120,6 +121,10 @@ def main(args):
         val_adj, val_feat, val_labels = val
 
     train_adj, train_feat, train_labels = train
+
+    if args.add_self_loops:
+        train_adj = [sp.csr_matrix(a.todense() + np.eye(a.shape[0])) for a in train_adj]
+        val_adj = [sp.csr_matrix(a.todense() + np.eye(a.shape[0])) for a in val_adj]
 
     if not args.use_entire_training_set:
         train_adj = train_adj[:args.num_training_examples]

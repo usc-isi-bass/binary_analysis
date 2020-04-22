@@ -76,3 +76,5 @@ class Args():
         self.undirected_graphs = False
         self.encoder = None
 
+        self.add_self_loops = True
+
