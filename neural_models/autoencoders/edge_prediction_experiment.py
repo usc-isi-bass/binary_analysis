@@ -6,15 +6,15 @@ from sklearn.metrics import roc_auc_score
 from torch import optim
 from torch.autograd import Variable
 from torch.utils.tensorboard import SummaryWriter
-from .utils import construct_gcn_batch_edge_prediction, to_cuda, shuffle_data, load_pretrained_model
+from .utils import construct_gcn_batch_edge_prediction, to_cuda, shuffle_data, load_pretrained_model, calculate_accuracy, construct_gcn_batch_mask_subgraph_edges_all, load_data
 from .models.gcn import GCN
 from .models.fully_connected import FC
 
 DATA_PATH = os.getenv("DATA_PATH")
 
 
-def get_gcn_and_fc_out(data, models):
-    adj, feat, edge_out_nodes, edge_in_nodes, nonedge_out_nodes, nonedge_in_nodes, _, _ = data
+def get_predictions_gcn_fc(data, models):
+    adj, feat, edge_out_nodes, edge_in_nodes, nonedge_out_nodes, nonedge_in_nodes, y_for_edges, y_for_nonedges = data
     gcn, fc = models[0], models[1]
     adj = Variable(adj)
     feat = Variable(feat)
@@ -32,8 +32,8 @@ def get_gcn_and_fc_out(data, models):
     return y_out_for_edges, y_out_for_nonedges, y_for_edges, y_for_nonedges
 
 
-def get_fc_out(data, models):
-    adj, feat, edge_out_nodes, edge_in_nodes, nonedge_out_nodes, nonedge_in_nodes, _, _ = data
+def get_predictions_fc(data, models):
+    adj, feat, edge_out_nodes, edge_in_nodes, nonedge_out_nodes, nonedge_in_nodes, y_for_edges, y_for_nonedges = data
     fc = models[0]
 
     feat = Variable(feat)
@@ -47,6 +47,35 @@ def get_fc_out(data, models):
     nonedge_feat = torch.cat([nonedge_out_nodes_feat, nonedge_in_nodes_feat], dim=1)
     y_out_for_nonedges = fc(nonedge_feat)
     return y_out_for_edges, y_out_for_nonedges, y_for_edges, y_for_nonedges
+
+
+def get_predictions_subgraph(data, models, args):
+    adj, feat, subgraph, labels = data
+    if not (args.encoder == "no_encoder"):
+        gcn, fc = models[0], models[1]
+        adj = Variable(adj)
+        feat = Variable(feat)
+        node_reprs = gcn(feat, adj)
+    else:
+        fc = models[0]
+        node_reprs = feat
+
+    subgraph_nodes = torch.index_select(node_reprs, 0, subgraph)
+    N = node_reprs.shape[0]
+    d = node_reprs.shape[1]
+    n = subgraph_nodes.shape[0]
+    if args.all_edges:
+        tiled_subgraph_nodes = subgraph_nodes.repeat(1, N).view(n, N, d)
+        tiled_gcn_out = node_reprs.repeat(n, 1).view(n, N, d)
+        repr_for_edges = torch.cat([tiled_subgraph_nodes, tiled_gcn_out], dim=2)
+    else:
+        tiled_subgraph_nodes_pos1 = subgraph_nodes.repeat(1, n).view(n, n, d)
+        tiled_subgraph_nodes_pos2 = subgraph_nodes.repeat(n, 1).view(n, n, d)
+        repr_for_edges = torch.cat([tiled_subgraph_nodes_pos1, tiled_subgraph_nodes_pos2], dim=2)
+
+    y_out = fc(repr_for_edges)
+
+    return y_out, labels
 
 
 def run_epoch(epoch, args, train, models, batch_generator, optimizers, print_iter=0):
@@ -72,22 +101,30 @@ def run_epoch(epoch, args, train, models, batch_generator, optimizers, print_ite
                 model.zero_grad()
 
         data = to_cuda(data)
-        _, _, _, _, _, _, y_for_edges, y_for_nonedges = data
-        print("Args.encoder: ", args.encoder)
-        if args.encoder == "no_encoder":
-            y_out_for_edges, y_out_for_nonedges = get_fc_out(data=data, models=models)
+        if not args.sample_subgraphs:
+            if args.encoder == "no_encoder":
+                y_out_for_edges, y_out_for_nonedges, y_for_edges, y_for_nonedges = get_predictions_fc(data=data, models=models)
+            else:
+                y_out_for_edges, y_out_for_nonedges, y_for_edges, y_for_nonedges = get_predictions_gcn_fc(data=data, models=models)
+            loss = F.binary_cross_entropy_with_logits(y_out_for_edges, y_for_edges)
+            loss += F.binary_cross_entropy_with_logits(y_out_for_nonedges, y_for_nonedges)
         else:
-            y_out_for_edges, y_out_for_nonedges = get_gcn_and_fc_out(data=data, models=models)
-
-        loss = F.binary_cross_entropy_with_logits(y_out_for_edges, y_for_edges)
-        loss += F.binary_cross_entropy_with_logits(y_out_for_nonedges, y_for_nonedges)
+            y_out, labels = get_predictions_subgraph(data=data, models=models, args=args)
+            loss = F.binary_cross_entropy_with_logits(y_out, labels)
 
         if train:
             loss.backward()
 
-        acc = (torch.argmax(y_for_edges, 1).eq(torch.argmax(y_out_for_edges, 1).long())).sum().data.item()
-        acc += (torch.argmax(y_for_nonedges, 1).eq(torch.argmax(y_out_for_nonedges, 1)).long()).sum().data.item()
-        acc = acc / (y_out_for_edges.shape[0] + y_out_for_nonedges.shape[0])
+        if not args.sample_subgraphs:
+            acc = calculate_accuracy(y_for_edges, y_out_for_edges) + calculate_accuracy(y_for_nonedges,
+                                                                                        y_out_for_nonedges)
+            acc = acc / (y_out_for_edges.shape[0] + y_out_for_nonedges.shape[0])
+        else:
+            n = labels.shape[0] * labels.shape[1]
+            acc = calculate_accuracy(labels.reshape(n, 2), y_out.reshape(n, 2))
+            acc = acc / n
+            dummy_accuracy.append(labels[:, :, 0].sum().data.item()/n)
+            roc_aucs.append(roc_auc_score(labels.view(-1, 2).data.cpu(), y_out.view(-1, 2) .data.cpu()))
 
         if train:
             for optimizer in optimizers:
@@ -116,41 +153,9 @@ def run_epoch(epoch, args, train, models, batch_generator, optimizers, print_ite
 
 
 def main(args):
-    with open(DATA_PATH + '/updated_graphs/fold_0/{}_gcn_on_oj_train.pkl'.format(args.data), 'rb') as f:
-        train = pkl.load(f)
-        train_adj, train_feat, train_labels = train
-    if args.use_test_set:
-        with open(DATA_PATH + '/updated_graphs/fold_0/{}_gcn_on_oj_test.pkl'.format(args.data), 'rb') as f:
-            test = pkl.load(f)
-        val_adj, val_feat, val_labels = test
-    else:
-        with open(DATA_PATH + '/updated_graphs/fold_0/{}_gcn_on_oj_val.pkl'.format(args.data), 'rb') as f:
-            val = pkl.load(f)
-        val_adj, val_feat, val_labels = val
-
-    if args.add_self_loops:
-        train_adj = [sp.csr_matrix(a.todense() + np.eye(a.shape[0])) for a in train_adj]
-        val_adj = [sp.csr_matrix(a.todense() + np.eye(a.shape[0])) for a in val_adj]
-
-    if not args.use_entire_training_set:
-        train_adj = train_adj[:args.num_training_examples]
-        train_feat = train_feat[:args.num_training_examples]
-        train_labels = train_labels[:args.num_training_examples]
-
-    if not args.use_entire_testing_set:
-        val_adj = val_adj[:args.num_testing_examples]
-        val_feat = val_feat[:args.num_testing_examples]
-        val_labels = val_labels[:args.num_testing_examples]
-
-    if args.undirected_graphs:
-        undirected_train_adj = []
-        for t in train_adj:
-            undirected_train_adj.append(t + t.T)
-        train_adj = np.asarray(undirected_train_adj)
-        undirected_val_adj = []
-        for v in val_adj:
-            undirected_val_adj.append(v + v.T)
-        val_adj = np.asarray(undirected_val_adj)
+    train, val = load_data(args, DATA_PATH)
+    train_adj, train_feat, train_labels = train
+    val_adj, val_feat, val_labels = val
 
     torch.cuda.set_device(args.cuda)
     args.writer = SummaryWriter(args.logs_dir + args.writer_name + args.writer_comment)
