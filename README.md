@@ -57,15 +57,28 @@ Note: on the longer term, we want to generalize this to something that maps
 high-level, source-code level abstractions to low-level., assembly-level
 primitves, not just memory access patterns <-> data structure types.
 
-# Concrete short-term TODOs:
+# How to use Bin2vec:
 
-Shushan:
-- Think about simple feature vectors to start with
-- Hands-on small examples out of artificial toy programs and simple
-  libraries along with their test cases.
+```python
+from bin2vec.process_binary_for_graph import Graph
+from neural_models.data_processing.parse_graphs_for_gcn import GCN
 
-Chris & Erik:
-- Implement too to automatically extract data-structure information from
-  binary address.
+# create bin2vec graph from cfg
+#binary_path is a path to binary file
+bin2vec_graph = Graph(binary_path)
 
+#train using bin2vec model
+#graphs is a list of bin2vec graphs / labels is a list of bin2vec labels
+gcn = GCN(graphs, labels)
+adjacency_matrixes , feature_matrixes , one_hot_matrixes = gcn.preprocess()
+gcn.train_gcn(adjacency_matrixes, feature_matrixes, one_hot_matrixes)
 
+```
+
+file run_bin2vec.py contains an example of how to run bin2vec for your binaries.
+
+you can run this file by executing the below command.
+
+```bash
+python3 run_bin2vec.py binaries/juliet_bins
+```

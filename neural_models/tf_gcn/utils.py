@@ -122,14 +122,15 @@ def load_data_v2(graphs, labels):
     
     return adj, features, y_train, y_val, y_test, train_mask, val_mask, test_mask
 
-def construct_batch(adj, features, labels, mask, batch_size=8):
-    G = sum(mask)
+def construct_batch(adj, features, labels, batch_size=8):
+#     G = sum(mask)
+    G = adj.shape[-1]
     for i in range(G//batch_size + int(G%batch_size != 0)):
-        batch_adj = sp.csr_matrix(sp.block_diag(list(adj[mask][batch_size * i: batch_size * (i + 1)])))
-        batch_features = sp.csr_matrix(sp.vstack(features[mask][batch_size * i: batch_size * (i + 1)]))
-        batch_labels = np.vstack(list(labels[mask][batch_size * i: batch_size * (i + 1)]))
+        batch_adj = sp.csr_matrix(sp.block_diag(list(adj[batch_size * i: batch_size * (i + 1)])))
+        batch_features = sp.csr_matrix(sp.vstack(features[batch_size * i: batch_size * (i + 1)]))
+        batch_labels = np.vstack(list(labels[batch_size * i: batch_size * (i + 1)]))
         batch_pooling_matrix = sp.csr_matrix(sp.block_diag(
-        [np.ones(a.shape[0]) for a in adj[mask][batch_size * i: batch_size * (i + 1)]]))
+        [np.ones((1, a.shape[0]))/a.shape[0] for a in adj[batch_size * i: batch_size * (i + 1)]]))
         yield batch_adj, batch_pooling_matrix, batch_features, batch_labels
     return
 
@@ -178,17 +179,18 @@ def preprocess_adj(adj):
     return sparse_to_tuple(adj_normalized)
 
 
-def construct_feed_dict(features, support, labels, pooling_matrix, labels_mask, placeholders, batch_size=8):
+
+def construct_feed_dict(features, support, labels, pooling_matrix, placeholders, batch_size=8):
     """Construct feed dictionary."""
     feed_dict = dict()
     feed_dict.update({placeholders['labels']: labels})
-    feed_dict.update({placeholders['labels_mask']: labels_mask})
     feed_dict.update({placeholders['features']: features})
     feed_dict.update({placeholders['support'][i]: support[i] for i in range(len(support))})
     feed_dict.update({placeholders['pooling']: pooling_matrix})
     feed_dict.update({placeholders['num_features_nonzero']: features[1].shape})
 #     print ("Feed dict ", feed_dict)
     return feed_dict
+
 
 
 def chebyshev_polynomials(adj, k):
