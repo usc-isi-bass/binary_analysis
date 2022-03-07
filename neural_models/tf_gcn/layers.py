@@ -1,5 +1,5 @@
-from inits import *
-import tensorflow as tf
+from neural_models.tf_gcn.inits import *
+import tensorflow.compat.v1 as tf
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS

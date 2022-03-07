@@ -1,5 +1,5 @@
-from layers import *
-from metrics import *
+from neural_models.tf_gcn.layers import *
+from neural_models.tf_gcn.metrics import *
 
 # flags = tf.app.flags
 # FLAGS = flags.FLAGS
