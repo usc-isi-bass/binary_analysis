@@ -68,7 +68,7 @@ from neural_models.data_processing.parse_graphs_for_gcn import GCN
 bin2vec_graph = Graph(binary_path)
 
 #train using bin2vec model
-#graphs is a list of bin2vec graphs / labels is a list of bin2vec labels
+#graphs is a list of bin2vec graphs / labels is a list of corresponding labels
 gcn = GCN(graphs, labels)
 adjacency_matrixes , feature_matrixes , one_hot_matrixes = gcn.preprocess()
 gcn.train_gcn(adjacency_matrixes, feature_matrixes, one_hot_matrixes)
