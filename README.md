@@ -82,3 +82,6 @@ you can run this file by executing the below command.
 ```bash
 python3 run_bin2vec.py binaries/juliet_bins
 ```
+for more detail about how bin2vec works watch this video:
+  
+  https://www.youtube.com/watch?v=-XuPJzY5d84
